@@ -211,7 +211,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 If this project helped you learn Chinese, please consider giving it a ⭐ star!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=hhhpraise/hsk4-quiz&type=Date)](https://github.com/hhhpraise/hsk-quiz/stargazers)
+[![Star History Chart](https://api.star-history.com/svg?repos=hhhpraise/hsk-quiz&type=Date)](https://github.com/hhhpraise/hsk-quiz/stargazers)
 
 ---
 
