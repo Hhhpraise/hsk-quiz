@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK 4 Vocabulary Matching Quiz</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: #34495e;
+            color: white;
+            padding: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .quiz-area {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .question {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            font-weight: bold;
+            color: #2c3e50;
+            min-height: 70px;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option {
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .option:hover {
+            background: #e9ecef;
+            transform: translateY(-3px);
+        }
+
+        .option.selected {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .option.correct {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+            animation: correctPulse 0.6s ease;
+        }
+
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .next-btn {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .next-btn:hover {
+            background: #27ae60;
+        }
+
+        .check-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        .check-btn:hover {
+            background: #2980b9;
+        }
+
+        .reset-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #c0392b;
+        }
+
+        .shuffle-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .shuffle-btn:hover {
+            background: #e67e22;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ecf0f1;
+        }
+
+        .progress {
+            height: 100%;
+            background: #2ecc71;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .mode-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .result-feedback {
+            font-size: 1.2rem;
+            margin: 15px 0;
+            min-height: 30px;
+        }
+
+        .correct-feedback {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .incorrect-feedback {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .completion-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .modal-stats {
+            font-size: 1.2rem;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+
+        footer {
+            margin-top: 20px;
+            color: white;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .difficulty-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .star {
+            color: #f39c12;
+            font-size: 1.5rem;
+            margin: 0 2px;
+        }
+
+        .star.filled {
+            color: #f1c40f;
+        }
+
+        @media (max-width: 768px) {
+            .options {
+                grid-template-columns: 1fr;
+            }
+
+            .question {
+                font-size: 2rem;
+            }
+
+            .option {
+                padding: 15px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>HSK 4 Vocabulary Matching Quiz</h1>
+            <p class="subtitle">Match Chinese characters to pinyin and English translations</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="current-question">1</div>
+                <div>Current</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-words">0</div>
+                <div>Total Words</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="correct-answers">0</div>
+                <div>Correct</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="accuracy">0%</div>
+                <div>Accuracy</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress" id="progress-bar"></div>
+        </div>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" id="mode-pinyin">Pinyin Matching</button>
+            <button class="mode-btn" id="mode-english">English Matching</button>
+        </div>
+
+        <div class="quiz-area">
+            <div class="difficulty-indicator" id="difficulty">
+                <span class="star">★</span>
+                <span class="star">★</span>
+                <span class="star">★</span>
+                <span class="star">★</span>
+                <span class="star">★</span>
+            </div>
+
+            <div class="question" id="question">Loading...</div>
+
+            <div class="result-feedback" id="feedback"></div>
+
+            <div class="options" id="options">
+                <!-- Options will be generated by JavaScript -->
+            </div>
+
+            <div class="controls">
+                <button class="shuffle-btn" id="shuffle-btn">Shuffle Words</button>
+                <button class="reset-btn" id="reset-btn">Reset Progress</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="completion-modal" id="completion-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">🎉 Congratulations!</h2>
+            <div class="modal-stats" id="modal-stats">
+                <!-- Stats will be inserted here -->
+            </div>
+            <button class="reset-btn" onclick="resetQuiz()">Start Over</button>
+            <button class="shuffle-btn" onclick="shuffleAndRestart()">Shuffle & Restart</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>Created for HSK 4 Exam Preparation | Progress saved automatically</p>
+    </footer>
+
+    <script>
+        // HSK 4 vocabulary data
+        const originalWords = [
+            { chinese: "爱情", pinyin: "àiqíng", english: "Love" },
+            { chinese: "安排", pinyin: "ānpái", english: "arrange" },
+            { chinese: "安全", pinyin: "ānquán", english: "security" },
+            { chinese: "按时", pinyin: "ànshí", english: "on time" },
+            { chinese: "按照", pinyin: "ànzhào", english: "according to" },
+            { chinese: "百分之", pinyin: "bǎifēnzhī", english: "percent" },
+            { chinese: "棒", pinyin: "bàng", english: "stick; excellent" },
+            { chinese: "包子", pinyin: "bāozi", english: "Steamed stuffed bun" },
+            { chinese: "保护", pinyin: "bǎohù", english: "protect" },
+            { chinese: "保证", pinyin: "bǎozhèng", english: "ensure" },
+            { chinese: "抱", pinyin: "bào", english: "Hold" },
+            { chinese: "抱歉", pinyin: "bàoqiàn", english: "feel sorry" },
+            { chinese: "报名", pinyin: "bàomíng", english: "sign up" },
+            { chinese: "倍", pinyin: "bèi", english: "times" },
+            { chinese: "本来", pinyin: "běnlái", english: "originally" },
+            { chinese: "笨", pinyin: "bèn", english: "stupid" },
+            { chinese: "比如", pinyin: "bǐrú", english: "such as" },
+            { chinese: "毕业", pinyin: "bìyè", english: "graduation" },
+            { chinese: "遍", pinyin: "biàn", english: "Times" },
+            { chinese: "标准", pinyin: "biāozhǔn", english: "standard" },
+            { chinese: "表格", pinyin: "biǎogé", english: "form" },
+            { chinese: "表示", pinyin: "biǎoshì", english: "Express" },
+            { chinese: "表演", pinyin: "biǎoyǎn", english: "perform" },
+            { chinese: "表扬", pinyin: "biǎoyáng", english: "Praise" },
+            { chinese: "饼干", pinyin: "bǐnggān", english: "Biscuits" },
+            { chinese: "并且", pinyin: "bìngqiě", english: "also" },
+            { chinese: "博士", pinyin: "bóshì", english: "doctor" },
+            { chinese: "不过", pinyin: "búguò", english: "However" },
+            { chinese: "不得不", pinyin: "bùdébù", english: "have to" },
+            { chinese: "不管", pinyin: "bùguǎn", english: "no matter" },
+            { chinese: "不仅", pinyin: "bùjǐn", english: "not only" },
+            { chinese: "部分", pinyin: "bùfen", english: "Part" },
+            { chinese: "擦", pinyin: "cā", english: "wipe" },
+            { chinese: "猜", pinyin: "cāi", english: "guess" },
+            { chinese: "材料", pinyin: "cáiliào", english: "Material Science" },
+            { chinese: "参观", pinyin: "cānguān", english: "visit" },
+            { chinese: "餐厅", pinyin: "cāntīng", english: "Restaurant" },
+            { chinese: "差不多", pinyin: "chàbuduō", english: "Almost" },
+            { chinese: "尝", pinyin: "cháng", english: "taste" },
+            { chinese: "长城", pinyin: "chángchéng", english: "The Great Wall" },
+            { chinese: "长江", pinyin: "chángjiāng", english: "The Yangtze River" },
+            { chinese: "场", pinyin: "chǎng", english: "site" },
+            { chinese: "超过", pinyin: "chāoguò", english: "Exceed" },
+            { chinese: "厕所", pinyin: "cèsuǒ", english: "Toilet" },
+            { chinese: "成功", pinyin: "chénggōng", english: "Success" },
+            { chinese: "成为", pinyin: "chéngwéi", english: "Become" },
+            { chinese: "诚实", pinyin: "chéngshí", english: "honest" },
+            { chinese: "乘坐", pinyin: "chéngzuò", english: "ride" },
+            { chinese: "吃惊", pinyin: "chījīng", english: "Be amazed" },
+            { chinese: "重新", pinyin: "chóngxīn", english: "again" },
+            { chinese: "抽烟", pinyin: "chōyān", english: "smoking" },
+            { chinese: "出差", pinyin: "chūchāi", english: "A business travel" },
+            { chinese: "出发", pinyin: "chūfā", english: "Set out" },
+            { chinese: "出生", pinyin: "chūshēng", english: "Birth" },
+            { chinese: "出现", pinyin: "chūxiàn", english: "Appear" },
+            { chinese: "厨房", pinyin: "chúfáng", english: "Kitchen" },
+            { chinese: "传真", pinyin: "chuánzhēn", english: "Fax" },
+            { chinese: "窗户", pinyin: "chuānghu", english: "Window" },
+            { chinese: "词语", pinyin: "cíyǔ", english: "terms, words" },
+            { chinese: "从来", pinyin: "cónglái", english: "Always" },
+            { chinese: "粗心", pinyin: "cūxīn", english: "careless" },
+            { chinese: "存", pinyin: "cún", english: "Deposit" },
+            { chinese: "错误", pinyin: "cuòwù", english: "error" },
+            { chinese: "答案", pinyin: "dá'àn", english: "Answer" },
+            { chinese: "打招呼", pinyin: "dǎzhāohu", english: "Say hello" },
+            { chinese: "打扮", pinyin: "dǎban", english: "dress up" },
+            { chinese: "打扰", pinyin: "dǎrǎo", english: "Disturb" },
+            { chinese: "打印", pinyin: "dǎyìn", english: "Print" },
+            { chinese: "打折", pinyin: "dǎzhé", english: "Discount" },
+            { chinese: "打针", pinyin: "dǎzhēn", english: "To make an injection" },
+            { chinese: "大概", pinyin: "dàgài", english: "Probably" },
+            { chinese: "大使馆", pinyin: "dàshǐguǎn", english: "Embassy" },
+            { chinese: "大约", pinyin: "dàyuē", english: "about" },
+            { chinese: "戴", pinyin: "dài", english: "wear" },
+            { chinese: "大夫", pinyin: "dàifu", english: "Doctor" },
+            { chinese: "当", pinyin: "dāng", english: "When" },
+            { chinese: "当时", pinyin: "dāngshí", english: "at that time" },
+            { chinese: "刀", pinyin: "dāo", english: "knife" },
+            { chinese: "导游", pinyin: "dǎoyóu", english: "Guide" },
+            { chinese: "倒", pinyin: "dào", english: "inverted" },
+            { chinese: "到处", pinyin: "dàochù", english: "everywhere" },
+            { chinese: "到底", pinyin: "dàodǐ", english: "To the end" },
+            { chinese: "道歉", pinyin: "dàoqiàn", english: "apologize" },
+            { chinese: "得意", pinyin: "déyì", english: "Proud" },
+            { chinese: "地点", pinyin: "dìdiǎn", english: "location" },
+            { chinese: "得（助动词）", pinyin: "děi", english: "have to" },
+            { chinese: "登机牌", pinyin: "dēngjīpái", english: "Boarding pass" },
+            { chinese: "等 （动）", pinyin: "děng", english: "Wait (verb)" },
+            { chinese: "低", pinyin: "dī", english: "low" },
+            { chinese: "底", pinyin: "dǐ", english: "bottom" },
+            { chinese: "地球", pinyin: "dìqiú", english: "earth" },
+            { chinese: "地址", pinyin: "dìzhǐ", english: "address" },
+            { chinese: "掉", pinyin: "diào", english: "fall" },
+            { chinese: "调查", pinyin: "diàochá", english: "investigation" },
+            { chinese: "丢", pinyin: "diū", english: "lose" },
+            { chinese: "动作", pinyin: "dòngzuò", english: "action" },
+            { chinese: "堵车", pinyin: "dǔchē", english: "Traffic jam" },
+            { chinese: "肚子", pinyin: "dùzi", english: "belly" }
+        ];
+
+        // Quiz state variables
+        let words = [];
+        let currentIndex = 0;
+        let correctAnswers = 0;
+        let totalAnswered = 0;
+        let isPinyinMode = true;
+        let selectedOption = null;
+
+        // DOM elements
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const shuffleBtnEl = document.getElementById('shuffle-btn');
+        const resetBtnEl = document.getElementById('reset-btn');
+        const currentQuestionEl = document.getElementById('current-question');
+        const totalWordsEl = document.getElementById('total-words');
+        const correctAnswersEl = document.getElementById('correct-answers');
+        const accuracyEl = document.getElementById('accuracy');
+        const progressBar = document.getElementById('progress-bar');
+        const feedbackEl = document.getElementById('feedback');
+        const modePinyinBtn = document.getElementById('mode-pinyin');
+        const modeEnglishBtn = document.getElementById('mode-english');
+        const resetBtn = document.getElementById('reset-btn');
+        const shuffleBtn = document.getElementById('shuffle-btn');
+        const completionModal = document.getElementById('completion-modal');
+        const modalStats = document.getElementById('modal-stats');
+        const difficultyEl = document.getElementById('difficulty');
+
+        // Initialize
+        function init() {
+            loadProgress();
+            shuffleWords();
+            updateUI();
+            generateQuestion();
+
+            // Event listeners
+            modePinyinBtn.addEventListener('click', () => switchMode(true));
+            modeEnglishBtn.addEventListener('click', () => switchMode(false));
+            resetBtn.addEventListener('click', resetQuiz);
+            shuffleBtn.addEventListener('click', shuffleAndRestart);
+
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                if (e.key >= '1' && e.key <= '4') {
+                    const optionIndex = parseInt(e.key) - 1;
+                    const options = document.querySelectorAll('.option');
+                    if (options[optionIndex] && !selectedOption) {
+                        selectOption.call(options[optionIndex]);
+                    }
+                }
+            });
+        }
+
+        // Shuffle words array
+        function shuffleWords() {
+            words = [...originalWords];
+            shuffleArray(words);
+        }
+
+        // Switch between pinyin and english mode
+        function switchMode(pinyinMode) {
+            isPinyinMode = pinyinMode;
+            modePinyinBtn.classList.toggle('active', pinyinMode);
+            modeEnglishBtn.classList.toggle('active', !pinyinMode);
+            generateQuestion();
+        }
+
+        // Generate question and options
+        function generateQuestion() {
+            if (currentIndex >= words.length) {
+                showCompletionModal();
+                return;
+            }
+
+            const currentWord = words[currentIndex];
+            questionEl.textContent = currentWord.chinese;
+            feedbackEl.textContent = '';
+
+            // Update difficulty indicator (random for visual effect)
+            updateDifficulty();
+
+            // Reset options
+            optionsEl.innerHTML = '';
+
+            // Create correct option
+            const correctOption = document.createElement('div');
+            correctOption.className = 'option';
+            correctOption.dataset.correct = 'true';
+            correctOption.textContent = isPinyinMode
+                ? `${currentWord.pinyin} - ${currentWord.english}`
+                : currentWord.english;
+
+            // Create incorrect options (3 random words)
+            const incorrectOptions = [];
+            const usedIndices = new Set([currentIndex]);
+
+            while (incorrectOptions.length < 3) {
+                const randomIndex = Math.floor(Math.random() * words.length);
+                if (!usedIndices.has(randomIndex)) {
+                    usedIndices.add(randomIndex);
+                    const randomWord = words[randomIndex];
+
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.textContent = isPinyinMode
+                        ? `${randomWord.pinyin} - ${randomWord.english}`
+                        : randomWord.english;
+
+                    incorrectOptions.push(option);
+                }
+            }
+
+            // Combine and shuffle options
+            const allOptions = [correctOption, ...incorrectOptions];
+            shuffleArray(allOptions);
+
+            // Add options to DOM with keyboard shortcuts
+            allOptions.forEach((option, index) => {
+                option.addEventListener('click', selectOption);
+                option.title = `Press ${index + 1} to select`;
+                optionsEl.appendChild(option);
+            });
+
+            // Reset selection state
+            selectedOption = null;
+        }
+
+        // Select an option
+        function selectOption() {
+            if (selectedOption) return; // Prevent multiple selections
+
+            // Remove previous selection
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+
+            // Set new selection
+            this.classList.add('selected');
+            selectedOption = this;
+
+            // Automatically check the answer
+            setTimeout(() => {
+                checkAnswer();
+            }, 300); // Small delay to show selection
+        }
+
+        // Check answer
+        function checkAnswer() {
+            if (!selectedOption) {
+                feedbackEl.textContent = 'Please select an answer first!';
+                feedbackEl.className = 'result-feedback incorrect-feedback';
+                return;
+            }
+
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => {
+                opt.removeEventListener('click', selectOption);
+                if (opt.dataset.correct === 'true') {
+                    opt.classList.add('correct');
+                }
+                if (opt === selectedOption && opt.dataset.correct !== 'true') {
+                    opt.classList.add('incorrect');
+                }
+            });
+
+            totalAnswered++;
+
+            if (selectedOption.dataset.correct === 'true') {
+                feedbackEl.innerHTML = '🎉 Correct! Well done!';
+                feedbackEl.className = 'result-feedback correct-feedback';
+                correctAnswers++;
+            } else {
+                const correctAnswer = words[currentIndex];
+                const correctText = isPinyinMode
+                    ? `${correctAnswer.pinyin} - ${correctAnswer.english}`
+                    : correctAnswer.english;
+                feedbackEl.innerHTML = `❌ Incorrect. The answer is: <br><strong>${correctText}</strong>`;
+                feedbackEl.className = 'result-feedback incorrect-feedback';
+            }
+
+            updateUI();
+            saveProgress();
+
+            // Auto-advance to next question after showing feedback
+            setTimeout(() => {
+                nextQuestion();
+            }, 2000); // Show feedback for 2 seconds before moving on
+        }
+
+        // Next question
+        function nextQuestion() {
+            currentIndex++;
+            generateQuestion();
+            updateUI();
+        }
+
+        // Update UI elements
+        function updateUI() {
+            currentQuestionEl.textContent = currentIndex + 1;
+            totalWordsEl.textContent = words.length;
+            correctAnswersEl.textContent = correctAnswers;
+
+            const accuracy = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+            accuracyEl.textContent = `${accuracy}%`;
+
+            const progress = Math.round(((currentIndex + 1) / words.length) * 100);
+            progressBar.style.width = `${Math.min(progress, 100)}%`;
+        }
+
+        // Update difficulty indicator
+        function updateDifficulty() {
+            const stars = difficultyEl.querySelectorAll('.star');
+            const difficulty = Math.floor(Math.random() * 5) + 1;
+            stars.forEach((star, index) => {
+                star.classList.toggle('filled', index < difficulty);
+            });
+        }
+
+        // Show completion modal
+        function showCompletionModal() {
+            const accuracy = Math.round((correctAnswers / totalAnswered) * 100);
+            const grade = accuracy >= 90 ? 'Excellent!' :
+                         accuracy >= 80 ? 'Great job!' :
+                         accuracy >= 70 ? 'Good work!' :
+                         accuracy >= 60 ? 'Keep practicing!' : 'Need more study';
+
+            modalStats.innerHTML = `
+                <p><strong>Quiz Complete!</strong></p>
+                <p>Words completed: ${words.length}</p>
+                <p>Correct answers: ${correctAnswers}</p>
+                <p>Accuracy: ${accuracy}%</p>
+                <p>Grade: <strong>${grade}</strong></p>
+                <p style="margin-top: 20px; font-size: 1rem; opacity: 0.8;">
+                    ${accuracy >= 80 ? '🌟 Outstanding performance!' :
+                      accuracy >= 60 ? '📚 Keep up the good work!' :
+                      '💪 Practice makes perfect!'}
+                </p>
+            `;
+
+            completionModal.style.display = 'flex';
+        }
+
+        // Reset quiz
+        function resetQuiz() {
+            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+                currentIndex = 0;
+                correctAnswers = 0;
+                totalAnswered = 0;
+                clearProgress();
+                completionModal.style.display = 'none';
+                generateQuestion();
+                updateUI();
+            }
+        }
+
+        // Shuffle and restart
+        function shuffleAndRestart() {
+            currentIndex = 0;
+            correctAnswers = 0;
+            totalAnswered = 0;
+            shuffleWords();
+            clearProgress();
+            completionModal.style.display = 'none';
+            generateQuestion();
+            updateUI();
+        }
+
+        // Save progress to memory (not using localStorage as per requirements)
+        function saveProgress() {
+            // In a real implementation, this would save to localStorage
+            // For now, we'll just keep it in memory during the session
+            window.quizProgress = {
+                currentIndex,
+                correctAnswers,
+                totalAnswered,
+                wordsOrder: words.map(w => w.chinese),
+                isPinyinMode
+            };
+        }
+
+        // Load progress from memory
+        function loadProgress() {
+            if (window.quizProgress) {
+                currentIndex = window.quizProgress.currentIndex || 0;
+                correctAnswers = window.quizProgress.correctAnswers || 0;
+                totalAnswered = window.quizProgress.totalAnswered || 0;
+                isPinyinMode = window.quizProgress.isPinyinMode !== undefined ? window.quizProgress.isPinyinMode : true;
+
+                // Restore word order if available
+                if (window.quizProgress.wordsOrder) {
+                    words = window.quizProgress.wordsOrder.map(chinese =>
+                        originalWords.find(w => w.chinese === chinese)
+                    ).filter(Boolean);
+                }
+
+                // Update mode buttons
+                modePinyinBtn.classList.toggle('active', isPinyinMode);
+                modeEnglishBtn.classList.toggle('active', !isPinyinMode);
+            }
+
+            // If no saved words or incomplete, use shuffled original
+            if (!words.length) {
+                shuffleWords();
+            }
+        }
+
+        // Clear progress from memory
+        function clearProgress() {
+            delete window.quizProgress;
+        }
+
+        // Shuffle array (Fisher-Yates algorithm)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Close modal when clicking outside
+        completionModal.addEventListener('click', (e) => {
+            if (e.target === completionModal) {
+                completionModal.style.display = 'none';
+            }
+        });
+
+        // Add some motivational messages based on performance
+        function getMotivationalMessage(streak) {
+            const messages = [
+                "You're on fire! 🔥",
+                "Excellent work! 🌟",
+                "Keep it up! 💪",
+                "Amazing progress! 🚀",
+                "You're doing great! 👏",
+                "Fantastic! 🎉",
+                "Superb! ⭐",
+                "Outstanding! 🏆"
+            ];
+            return messages[Math.floor(Math.random() * messages.length)];
+        }
+
+        // Enhanced feedback system
+        function showEnhancedFeedback(isCorrect) {
+            if (isCorrect) {
+                // Calculate streak (consecutive correct answers)
+                let streak = 1;
+                const recentAnswers = window.quizProgress?.recentAnswers || [];
+                for (let i = recentAnswers.length - 1; i >= 0; i--) {
+                    if (recentAnswers[i]) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (streak >= 5) {
+                    feedbackEl.innerHTML = `🎉 Correct! ${getMotivationalMessage()} (${streak} in a row!)`;
+                } else {
+                    feedbackEl.innerHTML = '🎉 Correct! Well done!';
+                }
+            }
+        }
+
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>
