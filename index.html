@@ -5,377 +5,500 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HSK 4 Vocabulary Quiz</title>
     <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #666;
+            --accent: #3498db;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --warning: #f39c12;
+            --border: #e9ecef;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --accent: #4a9eff;
+            --success: #00d084;
+            --error: #ff6b6b;
+            --warning: #ffa726;
+            --border: #444444;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: #333;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            transition: all 0.3s ease;
+            padding: 0;
+            overflow-x: hidden;
         }
 
         .container {
             width: 100%;
-            max-width: 1000px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-            margin: 20px 0;
+            min-height: 100vh;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
         }
 
-        header {
-            background: #2c3e50;
+        /* Header */
+        .header {
+            background: var(--accent);
             color: white;
-            padding: 20px;
-            text-align: center;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .title {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .subtitle {
-            font-size: 1rem;
-            opacity: 0.8;
+            font-size: 0.85rem;
+            opacity: 0.9;
         }
 
-        .batch-selector {
-            background: #34495e;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            border-bottom: 1px solid #2c3e50;
-        }
-
-        .batch-controls {
+        /* Quick Stats */
+        .quick-stats {
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .batch-size-btn {
-            padding: 8px 16px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .batch-size-btn.active {
-            background: #2ecc71;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            background: #34495e;
-            color: white;
-            padding: 10px;
+            justify-content: space-around;
+            background: var(--bg-secondary);
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border);
         }
 
         .stat-item {
             text-align: center;
+            flex: 1;
         }
 
         .stat-number {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: bold;
+            color: var(--accent);
         }
 
-        .quiz-area {
-            padding: 30px;
-            text-align: center;
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: var(--bg-secondary);
+            height: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--accent));
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Compact Controls */
+        .top-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .mode-btn, .batch-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .mode-btn.active, .batch-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+
+        /* Question Area */
+        .question-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 300px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px var(--shadow);
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
         }
 
         .question {
             font-size: 2.5rem;
-            margin-bottom: 30px;
             font-weight: bold;
-            color: #2c3e50;
+            text-align: center;
+            color: var(--text-primary);
+            margin-bottom: 24px;
             min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
         }
 
+        .feedback {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 600;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            padding: 8px 12px;
+            transition: all 0.3s ease;
+        }
+
+        .feedback.correct {
+            background: rgba(46, 204, 113, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .feedback.incorrect {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        /* Options */
         .options {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
+            grid-template-columns: 1fr;
+            gap: 12px;
         }
 
         .option {
-            padding: 20px;
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            color: var(--text-primary);
         }
 
-        .option:hover {
-            background: #e9ecef;
-            transform: translateY(-3px);
+        .option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .option:hover::before {
+            left: 100%;
+        }
+
+        .option:active {
+            transform: scale(0.98);
         }
 
         .option.selected {
-            background: #dbeafe;
-            border-color: #3b82f6;
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            transform: scale(1.02);
         }
 
         .option.correct {
-            background: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-            animation: correctPulse 0.6s ease;
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+            animation: pulse 0.6s ease;
         }
 
         .option.incorrect {
-            background: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
             animation: shake 0.5s ease;
         }
 
-        @keyframes correctPulse {
-            0% { transform: scale(1); }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
         }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
         }
 
-        .controls {
+        /* Bottom Controls */
+        .bottom-controls {
+            background: var(--bg-card);
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            position: sticky;
+            bottom: 0;
             display: flex;
+            gap: 8px;
             justify-content: center;
-            gap: 15px;
-            padding: 20px;
-            background: #f8f9fa;
             flex-wrap: wrap;
         }
 
-        button {
-            padding: 12px 25px;
+        .action-btn {
+            padding: 10px 16px;
             border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 1rem;
+            border-radius: 8px;
             font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .next-btn {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .next-btn:hover {
-            background: #27ae60;
-        }
-
-        .check-btn {
-            background: #3498db;
-            color: white;
-        }
-
-        .check-btn:hover {
-            background: #2980b9;
-        }
-
-        .reset-btn {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .reset-btn:hover {
-            background: #c0392b;
-        }
-
-        .shuffle-btn {
-            background: #f39c12;
-            color: white;
-        }
-
-        .shuffle-btn:hover {
-            background: #e67e22;
-        }
-
-        .review-btn {
-            background: #9b59b6;
-            color: white;
-        }
-
-        .review-btn:hover {
-            background: #8e44ad;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: #ecf0f1;
-        }
-
-        .progress {
-            height: 100%;
-            background: #2ecc71;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .mode-selector {
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
             display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-            gap: 10px;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
         }
 
-        .mode-btn {
-            padding: 10px 20px;
-            background: #e9ecef;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
+        .action-btn:active {
+            transform: scale(0.95);
         }
 
-        .mode-btn.active {
-            background: #3498db;
+        .btn-primary {
+            background: var(--accent);
             color: white;
         }
 
-        .result-feedback {
-            font-size: 1.2rem;
-            margin: 15px 0;
-            min-height: 30px;
+        .btn-success {
+            background: var(--success);
+            color: white;
         }
 
-        .correct-feedback {
-            color: #27ae60;
-            font-weight: bold;
+        .btn-warning {
+            background: var(--warning);
+            color: white;
         }
 
-        .incorrect-feedback {
-            color: #e74c3c;
-            font-weight: bold;
+        .btn-secondary {
+            background: var(--text-secondary);
+            color: white;
         }
 
+        /* Modals */
         .modal {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 0, 0, 0.8);
             display: none;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             z-index: 1000;
+            padding: 16px;
         }
 
         .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            text-align: center;
-            max-width: 700px;
-            width: 90%;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 100%;
+            width: 400px;
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 8px 32px var(--shadow);
+            border: 1px solid var(--border);
         }
 
         .modal-title {
-            font-size: 2rem;
-            color: #2c3e50;
-            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 16px;
+            text-align: center;
+            color: var(--text-primary);
         }
 
         .modal-stats {
-            font-size: 1.2rem;
-            margin: 20px 0;
-            line-height: 1.6;
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
         }
 
-        .review-section {
-            margin-top: 30px;
-            text-align: left;
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
         }
 
         .wrong-answer {
-            background: #f8f9fa;
-            border-left: 4px solid #e74c3c;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--error);
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
         }
 
         .wrong-answer .chinese {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
         }
 
         .wrong-answer .correct {
-            color: #27ae60;
+            color: var(--success);
             font-weight: bold;
         }
 
         .wrong-answer .selected {
-            color: #e74c3c;
+            color: var(--error);
             text-decoration: line-through;
         }
 
+        /* Batch Navigation */
         .batch-nav {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            background: #ecf0f1;
-            border-bottom: 1px solid #bdc3c7;
         }
 
         .batch-info {
-            font-weight: bold;
-            color: #2c3e50;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
         .nav-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .nav-btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.8rem;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .nav-btn.prev {
-            background: #95a5a6;
+            background: var(--text-secondary);
             color: white;
         }
 
         .nav-btn.next {
-            background: #3498db;
+            background: var(--accent);
             color: white;
         }
 
@@ -384,116 +507,210 @@
             cursor: not-allowed;
         }
 
-        footer {
-            margin-top: 20px;
-            color: white;
-            text-align: center;
-            font-size: 0.9rem;
-            opacity: 0.8;
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
         }
 
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px var(--shadow);
+            border: 1px solid var(--border);
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        /* Hide certain elements on mobile for cleaner experience */
         @media (max-width: 768px) {
-            .options {
-                grid-template-columns: 1fr;
+            .subtitle {
+                display: none;
             }
 
             .question {
                 font-size: 2rem;
+                margin-bottom: 20px;
             }
 
             .option {
-                padding: 15px;
+                font-size: 1rem;
+                padding: 14px;
             }
 
-            .stats {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 10px;
+            .modal-content {
+                margin: 8px;
+                padding: 20px;
             }
 
-            .controls {
-                flex-direction: column;
-                align-items: center;
+            .batch-nav {
+                padding: 8px 12px;
             }
 
-            button {
-                width: 100%;
-                max-width: 200px;
+            .batch-info {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Ultra-compact mode for small screens */
+        @media (max-width: 480px) {
+            .header {
+                padding: 8px 12px;
             }
 
-            .batch-controls {
-                flex-direction: column;
-                align-items: center;
+            .title {
+                font-size: 1.2rem;
             }
+
+            .main-content {
+                padding: 12px;
+            }
+
+            .question-container {
+                padding: 16px;
+                min-height: 250px;
+            }
+
+            .question {
+                font-size: 1.8rem;
+                min-height: 50px;
+            }
+
+            .options {
+                gap: 8px;
+            }
+
+            .option {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+
+            .bottom-controls {
+                padding: 8px 12px;
+            }
+
+            .action-btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid var(--accent);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body>
+<body data-theme="light">
     <div class="container">
-        <header>
-            <h1> HSK 4 Vocabulary Quiz</h1>
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <h1 class="title">🎯 HSK 4 Quiz</h1>
+                <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
             <p class="subtitle">Match Chinese characters to pinyin and English translations</p>
         </header>
 
-        <div class="batch-selector">
-            <div class="batch-controls">
-                <button class="batch-size-btn" data-size="25">25 Words</button>
-                <button class="batch-size-btn active" data-size="50">50 Words</button>
-                <button class="batch-size-btn" data-size="100">100 Words</button>
-                <button class="batch-size-btn" data-size="all">All Words</button>
-            </div>
-            <div class="batch-info" id="batch-info">Batch 1 of 2 (50 words)</div>
-        </div>
-
-        <div class="batch-nav" id="batch-nav">
-            <div class="batch-info" id="current-batch-info">Current: Batch 1 (Words 1-50)</div>
-            <div class="nav-buttons">
-                <button class="nav-btn prev" id="prev-batch">Previous Batch</button>
-                <button class="nav-btn next" id="next-batch">Next Batch</button>
-            </div>
-        </div>
-
-        <div class="stats">
+        <!-- Quick Stats -->
+        <div class="quick-stats">
             <div class="stat-item">
                 <div class="stat-number" id="current-question">1</div>
-                <div>Current</div>
+                <div class="stat-label">Current</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="batch-words">50</div>
-                <div>Batch Size</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="correct-answers">0</div>
-                <div>Correct</div>
+                <div class="stat-number" id="correct-count">0</div>
+                <div class="stat-label">Correct</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number" id="wrong-count">0</div>
-                <div>Wrong</div>
+                <div class="stat-label">Wrong</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number" id="accuracy">0%</div>
-                <div>Accuracy</div>
+                <div class="stat-label">Accuracy</div>
             </div>
         </div>
 
-        <div class="progress-bar">
-            <div class="progress" id="progress-bar"></div>
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
         </div>
 
-        <div class="mode-selector">
-            <button class="mode-btn active" id="mode-pinyin">Pinyin Matching</button>
-            <button class="mode-btn" id="mode-english">English Matching</button>
-        </div>
-
-        <div class="quiz-area">
-            <div class="question" id="question">Loading...</div>
-            <div class="result-feedback" id="feedback"></div>
-            <div class="options" id="options"></div>
-
-            <div class="controls">
-                <button class="review-btn" id="review-btn">Review Wrong Answers</button>
-                <button class="shuffle-btn" id="shuffle-btn">Shuffle Current Batch</button>
-                <button class="reset-btn" id="reset-btn">Reset Progress</button>
+        <!-- Batch Navigation -->
+        <div class="batch-nav">
+            <div class="batch-info" id="batch-info">Batch 1 of 2 (50 words)</div>
+            <div class="nav-buttons">
+                <button class="nav-btn prev" id="prev-batch">‹</button>
+                <button class="nav-btn next" id="next-batch">›</button>
             </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Compact Controls -->
+            <div class="top-controls">
+                <div class="control-group">
+                    <button class="mode-btn active" id="mode-pinyin">📝 Pinyin</button>
+                    <button class="mode-btn" id="mode-english">🇺🇸 English</button>
+                </div>
+                <div class="control-group">
+                    <button class="batch-btn" data-size="25">25</button>
+                    <button class="batch-btn active" data-size="50">50</button>
+                    <button class="batch-btn" data-size="100">100</button>
+                    <button class="batch-btn" data-size="all">All</button>
+                </div>
+            </div>
+
+            <!-- Question Container -->
+            <div class="question-container fade-in">
+                <div class="question" id="question">Loading...</div>
+                <div class="feedback" id="feedback"></div>
+                <div class="options" id="options"></div>
+            </div>
+        </main>
+
+        <!-- Bottom Controls -->
+        <div class="bottom-controls">
+            <button class="action-btn btn-primary" id="review-btn">📚 Review</button>
+            <button class="action-btn btn-warning" id="shuffle-btn">🔀 Shuffle</button>
+            <button class="action-btn btn-secondary" id="reset-btn">🔄 Reset</button>
         </div>
     </div>
 
@@ -502,11 +719,11 @@
         <div class="modal-content">
             <h2 class="modal-title">🎉 Batch Complete!</h2>
             <div class="modal-stats" id="modal-stats"></div>
-            <div class="review-section" id="modal-review"></div>
-            <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                <button class="next-btn" id="continue-next">Continue to Next Batch</button>
-                <button class="review-btn" id="review-wrong-modal">Review Wrong Answers</button>
-                <button class="reset-btn" id="restart-batch">Restart This Batch</button>
+            <div id="modal-review"></div>
+            <div class="modal-actions">
+                <button class="action-btn btn-primary" id="continue-next">Next Batch</button>
+                <button class="action-btn btn-warning" id="review-wrong-modal">Review Wrong</button>
+                <button class="action-btn btn-secondary" id="restart-batch">Restart</button>
             </div>
         </div>
     </div>
@@ -516,19 +733,15 @@
         <div class="modal-content">
             <h2 class="modal-title">📚 Wrong Answers Review</h2>
             <div id="review-content"></div>
-            <div style="margin-top: 30px;">
-                <button class="check-btn" id="practice-wrong">Practice Wrong Answers</button>
-                <button class="reset-btn" onclick="closeReviewModal()">Close</button>
+            <div class="modal-actions">
+                <button class="action-btn btn-primary" id="practice-wrong">Practice Wrong</button>
+                <button class="action-btn btn-secondary" onclick="closeReviewModal()">Close</button>
             </div>
         </div>
     </div>
 
-    <footer>
-        <p>Enhanced HSK 4 Exam Preparation | Progress saved automatically | Batch learning system</p>
-    </footer>
-
     <script>
-        // HSK 4 vocabulary data (truncated for demo - add all 600 words here)
+        // HSK 4 vocabulary data (same as original)
         const originalWords = [
             { chinese: "爱情", pinyin: "àiqíng", english: "Love" },
             { chinese: "安排", pinyin: "ānpái", english: "arrange" },
@@ -1130,11 +1343,10 @@
             { chinese: "座位", pinyin: "zuòwèi", english: "seat" },
             { chinese: "作用", pinyin: "zuòyòng", english: "Effect" },
             { chinese: "作者", pinyin: "zuòzhě", english: "author" }
-];
 
+        ];
 
-
-        // Quiz state variables
+        // Quiz state variables (same as original)
         let currentBatch = 0;
         let batchSize = 50;
         let currentBatchWords = [];
@@ -1151,17 +1363,52 @@
         const questionEl = document.getElementById('question');
         const optionsEl = document.getElementById('options');
         const currentQuestionEl = document.getElementById('current-question');
-        const batchWordsEl = document.getElementById('batch-words');
-        const correctAnswersEl = document.getElementById('correct-answers');
+        const correctCountEl = document.getElementById('correct-count');
         const wrongCountEl = document.getElementById('wrong-count');
         const accuracyEl = document.getElementById('accuracy');
         const progressBar = document.getElementById('progress-bar');
         const feedbackEl = document.getElementById('feedback');
         const batchInfoEl = document.getElementById('batch-info');
-        const currentBatchInfoEl = document.getElementById('current-batch-info');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        // Theme management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('hsk4-theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('hsk4-theme', newTheme);
+            updateThemeIcon(newTheme);
+            showToast(`Switched to ${newTheme} theme`);
+        }
+
+        function updateThemeIcon(theme) {
+            themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Toast notifications
+        function showToast(message, duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
 
         // Initialize
         function init() {
+            initTheme();
             loadProgress();
             setupEventListeners();
             updateBatchInfo();
@@ -1172,8 +1419,11 @@
 
         // Setup event listeners
         function setupEventListeners() {
+            // Theme toggle
+            themeToggle.addEventListener('click', toggleTheme);
+
             // Batch size buttons
-            document.querySelectorAll('.batch-size-btn').forEach(btn => {
+            document.querySelectorAll('.batch-btn').forEach(btn => {
                 btn.addEventListener('click', () => changeBatchSize(btn.dataset.size));
             });
 
@@ -1205,21 +1455,34 @@
                 });
             });
 
-            // Keyboard controls
-            document.addEventListener('keydown', (e) => {
-                if (e.key >= '1' && e.key <= '4') {
-                    const optionIndex = parseInt(e.key) - 1;
-                    const options = document.querySelectorAll('.option');
-                    if (options[optionIndex] && !selectedOption) {
-                        selectOption.call(options[optionIndex]);
-                    }
-                }
-            });
+            // Touch and keyboard controls
+            document.addEventListener('keydown', handleKeydown);
+
+            // Add touch feedback for better mobile experience
+            document.addEventListener('touchstart', function() {}, { passive: true });
         }
+
+        // Keyboard controls
+        function handleKeydown(e) {
+            if (e.key >= '1' && e.key <= '4') {
+                const optionIndex = parseInt(e.key) - 1;
+                const options = document.querySelectorAll('.option');
+                if (options[optionIndex] && !selectedOption) {
+                    selectOption.call(options[optionIndex]);
+                }
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedOption) {
+                    checkAnswer();
+                }
+            }
+        }
+
+        // All other functions remain the same as the original, with minor UI updates for mobile optimization
 
         // Change batch size
         function changeBatchSize(size) {
-            document.querySelectorAll('.batch-size-btn').forEach(btn => {
+            document.querySelectorAll('.batch-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.size === size);
             });
 
@@ -1231,6 +1494,7 @@
             generateQuestion();
             updateUI();
             saveProgress();
+            showToast(`Switched to ${size} words per batch`);
         }
 
         // Change batch
@@ -1266,7 +1530,6 @@
             const endWord = Math.min((currentBatch + 1) * batchSize, originalWords.length);
 
             batchInfoEl.textContent = `Batch ${currentBatch + 1} of ${totalBatches} (${currentBatchWords.length} words)`;
-            currentBatchInfoEl.textContent = `Current: Batch ${currentBatch + 1} (Words ${startWord}-${endWord})`;
 
             // Update navigation buttons
             document.getElementById('prev-batch').disabled = currentBatch === 0;
@@ -1281,7 +1544,7 @@
             generateQuestion();
         }
 
-        // Generate question and options with smart similar options
+        // Generate question and options
         function generateQuestion() {
             const wordsToUse = isReviewMode ? reviewWords : currentBatchWords;
 
@@ -1297,6 +1560,7 @@
             const currentWord = wordsToUse[currentIndex];
             questionEl.textContent = currentWord.chinese;
             feedbackEl.textContent = '';
+            feedbackEl.className = 'feedback';
 
             // Reset options
             optionsEl.innerHTML = '';
@@ -1316,18 +1580,28 @@
             const allOptions = [correctOption, ...incorrectOptions];
             shuffleArray(allOptions);
 
-            // Add options to DOM
+            // Add options to DOM with touch-friendly spacing
             allOptions.forEach((option, index) => {
                 option.addEventListener('click', selectOption);
-                option.title = `Press ${index + 1} to select`;
+                option.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    selectOption.call(this);
+                });
+                option.title = `Option ${index + 1}`;
                 optionsEl.appendChild(option);
             });
 
             selectedOption = null;
             updateBatchInfo();
+
+            // Add fade-in animation
+            questionEl.parentElement.classList.add('fade-in');
+            setTimeout(() => {
+                questionEl.parentElement.classList.remove('fade-in');
+            }, 300);
         }
 
-        // Generate similar options based on pinyin and meaning similarity
+        // Generate similar options (simplified for mobile performance)
         function generateSimilarOptions(correctWord, sourceWords) {
             const incorrectOptions = [];
             const allWords = isReviewMode ? originalWords : sourceWords;
@@ -1354,7 +1628,7 @@
             );
 
             // Combine with weighted preference for more similar words
-            candidates.push(...topSimilar, ...topSimilar, ...mediumSimilar); // Double top similar for higher chance
+            candidates.push(...topSimilar, ...topSimilar, ...mediumSimilar);
 
             // Select 3 unique options
             const usedWords = new Set([correctWord.chinese]);
@@ -1397,7 +1671,7 @@
             return incorrectOptions;
         }
 
-        // Calculate similarity score between two words
+        // Calculate similarity score between two words (optimized)
         function calculateSimilarityScore(word1, word2) {
             let score = 0;
 
@@ -1416,86 +1690,56 @@
             return score;
         }
 
-        // Calculate pinyin similarity (sound similarity)
+        // Calculate pinyin similarity (sound similarity) - simplified
         function calculatePinyinSimilarity(pinyin1, pinyin2) {
             if (!pinyin1 || !pinyin2) return 0;
 
-            // Remove tones for basic sound comparison
-            const clean1 = pinyin1.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, match => {
-                const toneMap = {
-                    'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'ā': 'a', 'ă': 'a', 'ą': 'a',
-                    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e', 'ĕ': 'e', 'ė': 'e', 'ę': 'e',
-                    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i', 'ĭ': 'i', 'į': 'i',
-                    'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'ō': 'o', 'ŏ': 'o', 'ő': 'o',
-                    'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ū': 'u', 'ŭ': 'u', 'ů': 'u', 'ű': 'u', 'ų': 'u'
-                };
-                return toneMap[match] || match.replace(/[1-5]/g, '');
-            });
+            // Simple comparison for mobile performance
+            const clean1 = pinyin1.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, '');
+            const clean2 = pinyin2.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, '');
 
-            const clean2 = pinyin2.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, match => {
-                const toneMap = {
-                    'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'ā': 'a', 'ă': 'a', 'ą': 'a',
-                    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e', 'ĕ': 'e', 'ė': 'e', 'ę': 'e',
-                    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i', 'ĭ': 'i', 'į': 'i',
-                    'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'ō': 'o', 'ŏ': 'o', 'ő': 'o',
-                    'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ū': 'u', 'ŭ': 'u', 'ů': 'u', 'ű': 'u', 'ų': 'u'
-                };
-                return toneMap[match] || match.replace(/[1-5]/g, '');
-            });
-
-            // Check for exact match
             if (clean1 === clean2) return 1.0;
 
-            // Check for similar sounds
             let similarity = 0;
-
-            // Similar initials
             if (clean1[0] === clean2[0]) similarity += 0.4;
 
-            // Similar finals
             const final1 = clean1.slice(1);
             const final2 = clean2.slice(1);
             if (final1 === final2) similarity += 0.6;
             else if (final1.includes(final2) || final2.includes(final1)) similarity += 0.3;
 
-            // Rhyming (same ending)
-            if (clean1.slice(-2) === clean2.slice(-2) && clean1.length > 2) similarity += 0.3;
-
             return Math.min(similarity, 1.0);
         }
 
-        // Calculate tone similarity
+        // Calculate tone similarity - simplified
         function calculateToneSimilarity(pinyin1, pinyin2) {
             const getTone = (pinyin) => {
                 if (!pinyin) return 0;
-                // Extract tone from pinyin
                 if (/[āēīōūǖ]/.test(pinyin)) return 1;
                 if (/[áéíóúǘ]/.test(pinyin)) return 2;
                 if (/[ǎěǐǒǔǚ]/.test(pinyin)) return 3;
                 if (/[àèìòùǜ]/.test(pinyin)) return 4;
                 if (/[1-4]/.test(pinyin)) return parseInt(pinyin.match(/[1-4]/)[0]);
-                return 0; // neutral tone
+                return 0;
             };
 
             const tone1 = getTone(pinyin1);
             const tone2 = getTone(pinyin2);
 
             if (tone1 === tone2) return 1.0;
-            if (Math.abs(tone1 - tone2) === 1) return 0.5; // Adjacent tones
+            if (Math.abs(tone1 - tone2) === 1) return 0.5;
             return 0;
         }
 
-        // Calculate English meaning similarity
+        // Calculate English meaning similarity - simplified
         function calculateEnglishSimilarity(english1, english2) {
             if (!english1 || !english2) return 0;
 
             const clean1 = english1.toLowerCase().trim();
             const clean2 = english2.toLowerCase().trim();
 
-            // Exact match
             if (clean1 === clean2) return 1.0;
 
-            // Check for common words/patterns
             const words1 = clean1.split(/\s+|[,;]/);
             const words2 = clean2.split(/\s+|[,;]/);
 
@@ -1508,54 +1752,34 @@
                 }
             });
 
-            let similarity = commonWords / totalWords;
-
-            // Check for similar categories
-            const categories = {
-                family: ['mother', 'father', 'parent', 'child', 'family', 'brother', 'sister'],
-                time: ['day', 'time', 'hour', 'minute', 'morning', 'evening', 'night', 'today', 'yesterday'],
-                food: ['eat', 'food', 'meal', 'lunch', 'dinner', 'breakfast', 'drink', 'tea', 'water'],
-                action: ['go', 'come', 'walk', 'run', 'sit', 'stand', 'sleep', 'work', 'study', 'read'],
-                feeling: ['happy', 'sad', 'angry', 'love', 'like', 'hate', 'good', 'bad', 'beautiful']
-            };
-
-            for (let category in categories) {
-                const inCategory1 = categories[category].some(word => clean1.includes(word));
-                const inCategory2 = categories[category].some(word => clean2.includes(word));
-                if (inCategory1 && inCategory2) {
-                    similarity += 0.3;
-                    break;
-                }
-            }
-
-            return Math.min(similarity, 1.0);
+            return commonWords / totalWords;
         }
 
-        // Calculate Chinese character similarity
+        // Calculate Chinese character similarity - simplified
         function calculateChineseSimilarity(chinese1, chinese2) {
             if (!chinese1 || !chinese2) return 0;
 
-            // Check for common radicals or similar characters
             let similarity = 0;
             const chars1 = chinese1.split('');
             const chars2 = chinese2.split('');
 
-            // Check for common characters
             chars1.forEach(char1 => {
                 if (chars2.includes(char1)) {
                     similarity += 0.5;
                 }
             });
 
-            // Normalize by length
-            similarity = similarity / Math.max(chars1.length, chars2.length);
-
-            return Math.min(similarity, 1.0);
+            return similarity / Math.max(chars1.length, chars2.length);
         }
 
-        // Select an option
+        // Select an option with haptic feedback
         function selectOption() {
             if (selectedOption) return;
+
+            // Haptic feedback for mobile
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
 
             const options = document.querySelectorAll('.option');
             options.forEach(opt => opt.classList.remove('selected'));
@@ -1568,17 +1792,18 @@
             }, 300);
         }
 
-        // Check answer
+        // Check answer with enhanced feedback
         function checkAnswer() {
             if (!selectedOption) {
                 feedbackEl.textContent = 'Please select an answer first!';
-                feedbackEl.className = 'result-feedback incorrect-feedback';
+                feedbackEl.className = 'feedback incorrect';
                 return;
             }
 
             const options = document.querySelectorAll('.option');
             options.forEach(opt => {
                 opt.removeEventListener('click', selectOption);
+                opt.style.pointerEvents = 'none';
                 if (opt.dataset.correct === 'true') {
                     opt.classList.add('correct');
                 }
@@ -1594,15 +1819,25 @@
 
             if (selectedOption.dataset.correct === 'true') {
                 feedbackEl.innerHTML = '🎉 Correct! Well done!';
-                feedbackEl.className = 'result-feedback correct-feedback';
+                feedbackEl.className = 'feedback correct';
                 correctAnswers++;
+
+                // Success haptic feedback
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 50, 100]);
+                }
             } else {
                 const correctText = isPinyinMode
                     ? `${currentWord.pinyin} - ${currentWord.english}`
                     : currentWord.english;
 
-                feedbackEl.innerHTML = `❌ Incorrect. The answer is: <br><strong>${correctText}</strong>`;
-                feedbackEl.className = 'result-feedback incorrect-feedback';
+                feedbackEl.innerHTML = `❌ Incorrect.<br><strong>${correctText}</strong>`;
+                feedbackEl.className = 'feedback incorrect';
+
+                // Error haptic feedback
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100, 50, 100]);
+                }
 
                 // Add to wrong answers
                 const wrongAnswer = {
@@ -1619,7 +1854,7 @@
 
             setTimeout(() => {
                 nextQuestion();
-            }, 2500);
+            }, 2000); // Shorter delay for mobile
         }
 
         // Next question
@@ -1633,18 +1868,17 @@
         function updateUI() {
             const wordsToUse = isReviewMode ? reviewWords : currentBatchWords;
             currentQuestionEl.textContent = currentIndex + 1;
-            batchWordsEl.textContent = wordsToUse.length;
-            correctAnswersEl.textContent = correctAnswers;
+            correctCountEl.textContent = correctAnswers;
             wrongCountEl.textContent = wrongAnswers.length;
 
             const accuracy = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
             accuracyEl.textContent = `${accuracy}%`;
 
-            const progress = Math.round(((currentIndex + 1) / wordsToUse.length) * 100);
-            progressBar.style.width = `${Math.min(progress, 100)}%`;
+            const progress = Math.min(((currentIndex) / wordsToUse.length) * 100, 100);
+            progressBar.style.width = `${progress}%`;
         }
 
-        // Show completion modal
+        // Show completion modal with mobile-optimized content
         function showCompletionModal() {
             const accuracy = Math.round((correctAnswers / totalAnswered) * 100);
             const grade = accuracy >= 90 ? 'Excellent!' :
@@ -1654,69 +1888,49 @@
 
             const modalStats = document.getElementById('modal-stats');
             modalStats.innerHTML = `
-                <p><strong>Batch ${currentBatch + 1} Complete!</strong></p>
-                <p>Words completed: ${currentBatchWords.length}</p>
-                <p>Correct answers: ${correctAnswers}</p>
-                <p>Wrong answers: ${wrongAnswers.length}</p>
-                <p>Accuracy: ${accuracy}%</p>
-                <p>Grade: <strong>${grade}</strong></p>
+                <div style="text-align: center; font-size: 1.1rem; line-height: 1.6;">
+                    <p><strong>🎯 Batch ${currentBatch + 1} Complete!</strong></p>
+                    <p>✅ Correct: ${correctAnswers} | ❌ Wrong: ${wrongAnswers.length}</p>
+                    <p>📊 Accuracy: <strong>${accuracy}%</strong></p>
+                    <p>🏆 Grade: <strong style="color: var(--accent);">${grade}</strong></p>
+                </div>
             `;
-
-            // Show review of wrong answers
-            const modalReview = document.getElementById('modal-review');
-            if (wrongAnswers.length > 0) {
-                modalReview.innerHTML = `
-                    <h3 style="color: #e74c3c; margin-bottom: 15px;">Wrong Answers Summary (${wrongAnswers.length})</h3>
-                    <div style="max-height: 200px; overflow-y: auto;">
-                        ${wrongAnswers.slice(0, 5).map(wa => `
-                            <div class="wrong-answer">
-                                <div class="chinese">${wa.word.chinese}</div>
-                                <div>Your answer: <span class="selected">${wa.selectedAnswer}</span></div>
-                                <div>Correct: <span class="correct">${wa.correctAnswer}</span></div>
-                            </div>
-                        `).join('')}
-                        ${wrongAnswers.length > 5 ? `<p><em>...and ${wrongAnswers.length - 5} more</em></p>` : ''}
-                    </div>
-                `;
-            } else {
-                modalReview.innerHTML = '<p style="color: #27ae60; font-weight: bold;">🎉 Perfect! No wrong answers!</p>';
-            }
 
             // Show/hide continue button based on available batches
             const totalBatches = Math.ceil(originalWords.length / batchSize);
             const continueBtn = document.getElementById('continue-next');
-            continueBtn.style.display = currentBatch < totalBatches - 1 ? 'inline-block' : 'none';
+            continueBtn.style.display = currentBatch < totalBatches - 1 ? 'inline-flex' : 'none';
 
             document.getElementById('completion-modal').style.display = 'flex';
         }
 
-        // Show review modal
+        // Show review modal with compact mobile layout
         function showReviewModal() {
             if (wrongAnswers.length === 0) {
-                alert('No wrong answers to review yet!');
+                showToast('No wrong answers to review yet! 🎉');
                 return;
             }
 
             const reviewContent = document.getElementById('review-content');
             reviewContent.innerHTML = `
-                <div style="margin-bottom: 20px;">
-                    <p><strong>Total wrong answers: ${wrongAnswers.length}</strong></p>
+                <div style="margin-bottom: 16px; text-align: center;">
+                    <p><strong>📋 Review ${wrongAnswers.length} wrong answers</strong></p>
                 </div>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    ${wrongAnswers.map((wa, index) => `
+                <div style="max-height: 300px; overflow-y: auto;">
+                    ${wrongAnswers.slice(0, 10).map((wa, index) => `
                         <div class="wrong-answer">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <div class="chinese">${wa.word.chinese}</div>
                                 <small style="opacity: 0.7;">#${index + 1}</small>
                             </div>
-                            <div><strong>Pinyin:</strong> ${wa.word.pinyin}</div>
-                            <div><strong>English:</strong> ${wa.word.english}</div>
-                            <div style="margin-top: 8px;">
-                                <div>Your answer: <span class="selected">${wa.selectedAnswer}</span></div>
-                                <div>Correct: <span class="correct">${wa.mode === 'pinyin' ? `${wa.word.pinyin} - ${wa.word.english}` : wa.word.english}</span></div>
+                            <div style="font-size: 0.9rem; margin-bottom: 4px;"><strong>📌 ${wa.word.pinyin}</strong> - ${wa.word.english}</div>
+                            <div style="font-size: 0.85rem;">
+                                <div>❌ <span class="selected">${wa.selectedAnswer}</span></div>
+                                <div>✅ <span class="correct">${wa.mode === 'pinyin' ? `${wa.word.pinyin} - ${wa.word.english}` : wa.word.english}</span></div>
                             </div>
                         </div>
                     `).join('')}
+                    ${wrongAnswers.length > 10 ? `<p style="text-align: center; margin-top: 12px;"><em>...and ${wrongAnswers.length - 10} more</em></p>` : ''}
                 </div>
             `;
 
@@ -1734,7 +1948,6 @@
             currentIndex = 0;
             correctAnswers = 0;
             totalAnswered = 0;
-            const previousWrongAnswers = [...wrongAnswers];
             wrongAnswers = [];
 
             document.getElementById('review-modal').style.display = 'none';
@@ -1742,14 +1955,14 @@
 
             generateQuestion();
             updateUI();
+            showToast(`Starting review practice with ${reviewWords.length} words`);
         }
 
         // Show review complete modal
         function showReviewCompleteModal() {
             const accuracy = Math.round((correctAnswers / totalAnswered) * 100);
-            alert(`Review Complete!\n\nWords reviewed: ${reviewWords.length}\nCorrect: ${correctAnswers}\nAccuracy: ${accuracy}%\n\nReturning to main quiz...`);
-
-            exitReviewMode();
+            showToast(`Review Complete! ${correctAnswers}/${reviewWords.length} correct (${accuracy}%)`);
+            setTimeout(() => exitReviewMode(), 1000);
         }
 
         // Exit review mode
@@ -1792,11 +2005,12 @@
             currentIndex = 0;
             generateQuestion();
             updateUI();
+            showToast('Batch shuffled! 🔀');
         }
 
         // Reset all progress
         function resetProgress() {
-            if (confirm('Are you sure you want to reset all progress? This will clear all batches and start over.')) {
+            if (confirm('Reset all progress? This will start over from the beginning.')) {
                 currentBatch = 0;
                 resetCurrentBatch();
                 isReviewMode = false;
@@ -1806,6 +2020,7 @@
                 updateBatchInfo();
                 generateQuestion();
                 updateUI();
+                showToast('Progress reset! Starting fresh 🔄');
             }
         }
 
@@ -1814,11 +2029,8 @@
             document.getElementById('review-modal').style.display = 'none';
         }
 
-        // Save progress to memory (for Claude environment)
-        // NOTE: To enable persistent storage, replace this function with the localStorage version below
+        // Save progress to localStorage
         function saveProgress() {
-
-            // PERSISTENT VERSION - Uncomment this when using in your own environment:
             try {
                 localStorage.setItem('hsk4QuizProgress', JSON.stringify({
                     currentBatch,
@@ -1830,111 +2042,56 @@
                     isPinyinMode,
                     isReviewMode,
                     reviewWords,
-                    completedBatches: getCompletedBatches(),
                     lastSaved: new Date().getTime()
                 }));
             } catch (e) {
-                console.warn('Could not save progress to localStorage:', e);
+                console.warn('Could not save progress:', e);
             }
-
         }
 
-        // Load progress from memory (for Claude environment)
+        // Load progress from localStorage
         function loadProgress() {
-            let savedData = null;
-
-
-            // PERSISTENT VERSION - Uncomment this when using in your own environment:
             try {
                 const saved = localStorage.getItem('hsk4QuizProgress');
                 if (saved) {
-                    savedData = JSON.parse(saved);
+                    const savedData = JSON.parse(saved);
+
+                    currentBatch = savedData.currentBatch || 0;
+                    batchSize = savedData.batchSize || 50;
+                    currentIndex = savedData.currentIndex || 0;
+                    correctAnswers = savedData.correctAnswers || 0;
+                    wrongAnswers = savedData.wrongAnswers || [];
+                    totalAnswered = savedData.totalAnswered || 0;
+                    isPinyinMode = savedData.isPinyinMode !== undefined ? savedData.isPinyinMode : true;
+                    isReviewMode = savedData.isReviewMode || false;
+                    reviewWords = savedData.reviewWords || [];
+
+                    // Update UI elements
+                    document.querySelectorAll('.batch-btn').forEach(btn => {
+                        btn.classList.toggle('active',
+                            (btn.dataset.size === 'all' && batchSize === originalWords.length) ||
+                            parseInt(btn.dataset.size) === batchSize
+                        );
+                    });
+
+                    document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
+                    document.getElementById('mode-english').classList.toggle('active', !isPinyinMode);
+
+                    if (savedData.lastSaved) {
+                        showToast('Progress restored! 📱');
+                    }
                 }
             } catch (e) {
-                console.warn('Could not load progress from localStorage:', e);
+                console.warn('Could not load progress:', e);
             }
-
-
-            if (savedData) {
-                currentBatch = savedData.currentBatch || 0;
-                batchSize = savedData.batchSize || 50;
-                currentIndex = savedData.currentIndex || 0;
-                correctAnswers = savedData.correctAnswers || 0;
-                wrongAnswers = savedData.wrongAnswers || [];
-                totalAnswered = savedData.totalAnswered || 0;
-                isPinyinMode = savedData.isPinyinMode !== undefined ? savedData.isPinyinMode : true;
-                isReviewMode = savedData.isReviewMode || false;
-                reviewWords = savedData.reviewWords || [];
-
-                // Update UI elements
-                document.querySelectorAll('.batch-size-btn').forEach(btn => {
-                    btn.classList.toggle('active',
-                        (btn.dataset.size === 'all' && batchSize === originalWords.length) ||
-                        parseInt(btn.dataset.size) === batchSize
-                    );
-                });
-
-                document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
-                document.getElementById('mode-english').classList.toggle('active', !isPinyinMode);
-
-                // Show restoration message if data was loaded
-                if (savedData.lastSaved) {
-                    const lastSaved = new Date(savedData.lastSaved);
-                    console.log(`Progress restored from ${lastSaved.toLocaleString()}`);
-                    showRestoreMessage(lastSaved);
-                }
-            }
-        }
-
-        // Show progress restoration message
-        function showRestoreMessage(lastSaved) {
-            const message = document.createElement('div');
-            message.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #2ecc71;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 10px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                z-index: 1001;
-                font-size: 14px;
-                max-width: 300px;
-            `;
-            message.innerHTML = `
-                <strong>✅ Progress Restored!</strong><br>
-                Last saved: ${lastSaved.toLocaleDateString()} ${lastSaved.toLocaleTimeString()}<br>
-                Batch ${currentBatch + 1}, Question ${currentIndex + 1}
-            `;
-            document.body.appendChild(message);
-
-            setTimeout(() => {
-                message.remove();
-            }, 4000);
-        }
-
-        // Get completed batches info
-        function getCompletedBatches() {
-            const totalBatches = Math.ceil(originalWords.length / batchSize);
-            const completed = [];
-
-            // This would track which batches are completed in a real implementation
-            // For now, we'll just track the current progress
-            return {
-                total: totalBatches,
-                currentBatch: currentBatch,
-                currentProgress: `${currentIndex}/${currentBatchWords.length}`
-            };
         }
 
         // Clear progress from storage
         function clearProgress() {
-            // PERSISTENT VERSION - Uncomment this when using in your own environment:
             try {
                 localStorage.removeItem('hsk4QuizProgress');
             } catch (e) {
-                console.warn('Could not clear progress from localStorage:', e);
+                console.warn('Could not clear progress:', e);
             }
         }
 
