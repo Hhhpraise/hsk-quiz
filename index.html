@@ -430,7 +430,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>HSK 4 Vocabulary Quiz</h1>
+            <h1> HSK 4 Vocabulary Quiz</h1>
             <p class="subtitle">Match Chinese characters to pinyin and English translations</p>
         </header>
 
@@ -778,7 +778,7 @@
             generateQuestion();
         }
 
-        // Generate question and options
+        // Generate question and options with smart similar options
         function generateQuestion() {
             const wordsToUse = isReviewMode ? reviewWords : currentBatchWords;
 
@@ -806,26 +806,8 @@
                 ? `${currentWord.pinyin} - ${currentWord.english}`
                 : currentWord.english;
 
-            // Create incorrect options (3 random words)
-            const incorrectOptions = [];
-            const usedIndices = new Set([currentIndex]);
-            const sourceWords = isReviewMode ? originalWords : currentBatchWords;
-
-            while (incorrectOptions.length < 3) {
-                const randomIndex = Math.floor(Math.random() * sourceWords.length);
-                if (!usedIndices.has(randomIndex)) {
-                    usedIndices.add(randomIndex);
-                    const randomWord = sourceWords[randomIndex];
-
-                    const option = document.createElement('div');
-                    option.className = 'option';
-                    option.textContent = isPinyinMode
-                        ? `${randomWord.pinyin} - ${randomWord.english}`
-                        : randomWord.english;
-
-                    incorrectOptions.push(option);
-                }
-            }
+            // Create smart similar incorrect options
+            const incorrectOptions = generateSimilarOptions(currentWord, wordsToUse);
 
             // Combine and shuffle options
             const allOptions = [correctOption, ...incorrectOptions];
@@ -840,6 +822,232 @@
 
             selectedOption = null;
             updateBatchInfo();
+        }
+
+        // Generate similar options based on pinyin and meaning similarity
+        function generateSimilarOptions(correctWord, sourceWords) {
+            const incorrectOptions = [];
+            const allWords = isReviewMode ? originalWords : sourceWords;
+
+            // Calculate similarity scores for all words
+            const similarWords = allWords
+                .filter(word => word.chinese !== correctWord.chinese)
+                .map(word => ({
+                    word: word,
+                    score: calculateSimilarityScore(correctWord, word)
+                }))
+                .sort((a, b) => b.score - a.score);
+
+            // Strategy: Use most similar words, with some randomness for variety
+            const candidates = [];
+
+            // Get top 20% most similar words
+            const topSimilar = similarWords.slice(0, Math.max(10, Math.floor(similarWords.length * 0.2)));
+
+            // Add some medium similar words for variety
+            const mediumSimilar = similarWords.slice(
+                Math.floor(similarWords.length * 0.2),
+                Math.floor(similarWords.length * 0.5)
+            );
+
+            // Combine with weighted preference for more similar words
+            candidates.push(...topSimilar, ...topSimilar, ...mediumSimilar); // Double top similar for higher chance
+
+            // Select 3 unique options
+            const usedWords = new Set([correctWord.chinese]);
+            let attempts = 0;
+
+            while (incorrectOptions.length < 3 && attempts < 50) {
+                const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+
+                if (randomCandidate && !usedWords.has(randomCandidate.word.chinese)) {
+                    usedWords.add(randomCandidate.word.chinese);
+
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.dataset.similarity = randomCandidate.score.toFixed(2);
+                    option.textContent = isPinyinMode
+                        ? `${randomCandidate.word.pinyin} - ${randomCandidate.word.english}`
+                        : randomCandidate.word.english;
+
+                    incorrectOptions.push(option);
+                }
+                attempts++;
+            }
+
+            // If we couldn't find enough similar options, fill with random ones
+            while (incorrectOptions.length < 3) {
+                const randomWord = allWords[Math.floor(Math.random() * allWords.length)];
+                if (!usedWords.has(randomWord.chinese)) {
+                    usedWords.add(randomWord.chinese);
+
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.textContent = isPinyinMode
+                        ? `${randomWord.pinyin} - ${randomWord.english}`
+                        : randomWord.english;
+
+                    incorrectOptions.push(option);
+                }
+            }
+
+            return incorrectOptions;
+        }
+
+        // Calculate similarity score between two words
+        function calculateSimilarityScore(word1, word2) {
+            let score = 0;
+
+            if (isPinyinMode) {
+                // Pinyin similarity analysis
+                score += calculatePinyinSimilarity(word1.pinyin, word2.pinyin) * 50;
+                score += calculateToneSimilarity(word1.pinyin, word2.pinyin) * 30;
+                score += calculateEnglishSimilarity(word1.english, word2.english) * 20;
+            } else {
+                // English similarity analysis
+                score += calculateEnglishSimilarity(word1.english, word2.english) * 60;
+                score += calculatePinyinSimilarity(word1.pinyin, word2.pinyin) * 25;
+                score += calculateChineseSimilarity(word1.chinese, word2.chinese) * 15;
+            }
+
+            return score;
+        }
+
+        // Calculate pinyin similarity (sound similarity)
+        function calculatePinyinSimilarity(pinyin1, pinyin2) {
+            if (!pinyin1 || !pinyin2) return 0;
+
+            // Remove tones for basic sound comparison
+            const clean1 = pinyin1.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, match => {
+                const toneMap = {
+                    'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'ā': 'a', 'ă': 'a', 'ą': 'a',
+                    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e', 'ĕ': 'e', 'ė': 'e', 'ę': 'e',
+                    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i', 'ĭ': 'i', 'į': 'i',
+                    'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'ō': 'o', 'ŏ': 'o', 'ő': 'o',
+                    'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ū': 'u', 'ŭ': 'u', 'ů': 'u', 'ű': 'u', 'ų': 'u'
+                };
+                return toneMap[match] || match.replace(/[1-5]/g, '');
+            });
+
+            const clean2 = pinyin2.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, match => {
+                const toneMap = {
+                    'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'ā': 'a', 'ă': 'a', 'ą': 'a',
+                    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e', 'ĕ': 'e', 'ė': 'e', 'ę': 'e',
+                    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i', 'ĭ': 'i', 'į': 'i',
+                    'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'ō': 'o', 'ŏ': 'o', 'ő': 'o',
+                    'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ū': 'u', 'ŭ': 'u', 'ů': 'u', 'ű': 'u', 'ų': 'u'
+                };
+                return toneMap[match] || match.replace(/[1-5]/g, '');
+            });
+
+            // Check for exact match
+            if (clean1 === clean2) return 1.0;
+
+            // Check for similar sounds
+            let similarity = 0;
+
+            // Similar initials
+            if (clean1[0] === clean2[0]) similarity += 0.4;
+
+            // Similar finals
+            const final1 = clean1.slice(1);
+            const final2 = clean2.slice(1);
+            if (final1 === final2) similarity += 0.6;
+            else if (final1.includes(final2) || final2.includes(final1)) similarity += 0.3;
+
+            // Rhyming (same ending)
+            if (clean1.slice(-2) === clean2.slice(-2) && clean1.length > 2) similarity += 0.3;
+
+            return Math.min(similarity, 1.0);
+        }
+
+        // Calculate tone similarity
+        function calculateToneSimilarity(pinyin1, pinyin2) {
+            const getTone = (pinyin) => {
+                if (!pinyin) return 0;
+                // Extract tone from pinyin
+                if (/[āēīōūǖ]/.test(pinyin)) return 1;
+                if (/[áéíóúǘ]/.test(pinyin)) return 2;
+                if (/[ǎěǐǒǔǚ]/.test(pinyin)) return 3;
+                if (/[àèìòùǜ]/.test(pinyin)) return 4;
+                if (/[1-4]/.test(pinyin)) return parseInt(pinyin.match(/[1-4]/)[0]);
+                return 0; // neutral tone
+            };
+
+            const tone1 = getTone(pinyin1);
+            const tone2 = getTone(pinyin2);
+
+            if (tone1 === tone2) return 1.0;
+            if (Math.abs(tone1 - tone2) === 1) return 0.5; // Adjacent tones
+            return 0;
+        }
+
+        // Calculate English meaning similarity
+        function calculateEnglishSimilarity(english1, english2) {
+            if (!english1 || !english2) return 0;
+
+            const clean1 = english1.toLowerCase().trim();
+            const clean2 = english2.toLowerCase().trim();
+
+            // Exact match
+            if (clean1 === clean2) return 1.0;
+
+            // Check for common words/patterns
+            const words1 = clean1.split(/\s+|[,;]/);
+            const words2 = clean2.split(/\s+|[,;]/);
+
+            let commonWords = 0;
+            let totalWords = Math.max(words1.length, words2.length);
+
+            words1.forEach(word1 => {
+                if (words2.some(word2 => word1 === word2 || word1.includes(word2) || word2.includes(word1))) {
+                    commonWords++;
+                }
+            });
+
+            let similarity = commonWords / totalWords;
+
+            // Check for similar categories
+            const categories = {
+                family: ['mother', 'father', 'parent', 'child', 'family', 'brother', 'sister'],
+                time: ['day', 'time', 'hour', 'minute', 'morning', 'evening', 'night', 'today', 'yesterday'],
+                food: ['eat', 'food', 'meal', 'lunch', 'dinner', 'breakfast', 'drink', 'tea', 'water'],
+                action: ['go', 'come', 'walk', 'run', 'sit', 'stand', 'sleep', 'work', 'study', 'read'],
+                feeling: ['happy', 'sad', 'angry', 'love', 'like', 'hate', 'good', 'bad', 'beautiful']
+            };
+
+            for (let category in categories) {
+                const inCategory1 = categories[category].some(word => clean1.includes(word));
+                const inCategory2 = categories[category].some(word => clean2.includes(word));
+                if (inCategory1 && inCategory2) {
+                    similarity += 0.3;
+                    break;
+                }
+            }
+
+            return Math.min(similarity, 1.0);
+        }
+
+        // Calculate Chinese character similarity
+        function calculateChineseSimilarity(chinese1, chinese2) {
+            if (!chinese1 || !chinese2) return 0;
+
+            // Check for common radicals or similar characters
+            let similarity = 0;
+            const chars1 = chinese1.split('');
+            const chars2 = chinese2.split('');
+
+            // Check for common characters
+            chars1.forEach(char1 => {
+                if (chars2.includes(char1)) {
+                    similarity += 0.5;
+                }
+            });
+
+            // Normalize by length
+            similarity = similarity / Math.max(chars1.length, chars2.length);
+
+            return Math.min(similarity, 1.0);
         }
 
         // Select an option
@@ -1107,7 +1315,6 @@
         // NOTE: To enable persistent storage, replace this function with the localStorage version below
         function saveProgress() {
 
-
             // PERSISTENT VERSION - Uncomment this when using in your own environment:
             try {
                 localStorage.setItem('hsk4QuizProgress', JSON.stringify({
@@ -1220,14 +1427,12 @@
 
         // Clear progress from storage
         function clearProgress() {
-
             // PERSISTENT VERSION - Uncomment this when using in your own environment:
             try {
                 localStorage.removeItem('hsk4QuizProgress');
             } catch (e) {
                 console.warn('Could not clear progress from localStorage:', e);
             }
-
         }
 
         // Shuffle array (Fisher-Yates algorithm)
