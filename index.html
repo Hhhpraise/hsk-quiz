@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HSK Vocabulary Quiz</title>
     <style>
+        /* Your existing CSS remains unchanged */
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
@@ -741,8 +742,9 @@
     </div>
 
     <script>
-        // HSK 4 vocabulary data (same as original)
-        const originalWords = [
+        // HSK 4 vocabulary data
+        let originalWords = [
+            // Your original word list remains here
             { chinese: "爱情", pinyin: "àiqíng", english: "Love" },
             { chinese: "安排", pinyin: "ānpái", english: "arrange" },
             { chinese: "安全", pinyin: "ānquán", english: "security" },
@@ -2317,9 +2319,42 @@
             { chinese: "作者", pinyin: "zuòzhě", english: "author" },
             { chinese: "做客", pinyin: "zuò kè", english: "be a guest" }
 
+
         ];
 
-        // Quiz state variables (same as original)
+        // Process the word list to interleave two alphabetical lists
+        (function arrangeWords() {
+            // First, sort all words alphabetically by Chinese characters
+            originalWords.sort((a, b) => a.chinese.localeCompare(b.chinese));
+
+            // Split into two halves
+            const half = Math.ceil(originalWords.length / 2);
+            const firstHalf = originalWords.slice(0, half);
+            const secondHalf = originalWords.slice(half);
+
+            // Interleave the two halves
+            const interleaved = [];
+            let i = 0, j = 0;
+
+            // Alternate between the two lists with some randomness
+            while (i < firstHalf.length && j < secondHalf.length) {
+                // Randomly decide which list to take from next
+                if (Math.random() < 0.5) {
+                    interleaved.push(firstHalf[i++]);
+                } else {
+                    interleaved.push(secondHalf[j++]);
+                }
+            }
+
+            // Add any remaining words
+            while (i < firstHalf.length) interleaved.push(firstHalf[i++]);
+            while (j < secondHalf.length) interleaved.push(secondHalf[j++]);
+
+            // Replace the original array with our interleaved version
+            originalWords = interleaved;
+        })();
+
+        // Quiz state variables
         let currentBatch = 0;
         let batchSize = 50;
         let currentBatchWords = [];
@@ -2450,8 +2485,6 @@
                 }
             }
         }
-
-        // All other functions remain the same as the original, with minor UI updates for mobile optimization
 
         // Change batch size
         function changeBatchSize(size) {
