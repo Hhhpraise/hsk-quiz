@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSK Vocabulary Quiz</title>
+    <title>HSK 5 Vocabulary Quiz</title>
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -627,7 +627,7 @@
         <!-- Header -->
         <header class="header">
             <div class="header-top">
-                <h1 class="title">HSK Quiz</h1>
+                <h1 class="title">HSK 5 Quiz</h1>
                 <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
                     <span id="theme-icon">🌙</span>
                 </button>
@@ -680,6 +680,9 @@
                     </button>
                     <button class="action-btn secondary-btn" id="progress-overview-btn">
                         📊 Progress
+                    </button>
+                    <button class="action-btn secondary-btn" id="save-progress-btn">
+                        💾 Save
                     </button>
                 </div>
             </div>
@@ -768,6 +771,8 @@
         let reviewWords = [];
         let completedBatches = [];
         let batchPerformance = {};
+        let totalWordsCount = 0;
+        let similarWordsMap = {};
 
         // DOM elements
         const questionEl = document.getElementById('question');
@@ -802,9 +807,10 @@
         const progressOverviewBtn = document.getElementById('progress-overview-btn');
         const closeProgressBtn = document.getElementById('close-progress-btn');
         const batchProgress = document.getElementById('batch-progress');
+        const saveProgressBtn = document.getElementById('save-progress-btn');
 
         // Load vocabulary from JSON file
-       async function loadVocabulary() {
+        async function loadVocabulary() {
             try {
                 const response = await fetch('./vocabulary.json');
                 if (!response.ok) {
@@ -826,9 +832,13 @@
                 });
 
                 originalWords = data.words;
+                totalWordsCount = data.totalWords || data.words.length;
 
                 // Process the word list to interleave two alphabetical lists
                 arrangeWords();
+
+                // Precompute similar words for each word
+                precomputeSimilarWords();
 
                 // Update title with level info if provided
                 if (data.level) {
@@ -844,6 +854,68 @@
             }
         }
 
+        // Precompute similar words for each word
+        function precomputeSimilarWords() {
+            // Create a map of pinyin to words (without tones for matching)
+            const pinyinMap = {};
+
+            originalWords.forEach(word => {
+                // Remove tones from pinyin for better matching
+                const basePinyin = word.pinyin
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+                    .replace(/[0-9]/g, "") // Remove tone numbers
+                    .toLowerCase();
+
+                if (!pinyinMap[basePinyin]) {
+                    pinyinMap[basePinyin] = [];
+                }
+                pinyinMap[basePinyin].push(word);
+            });
+
+            // For each word, find similar words
+            originalWords.forEach(word => {
+                const basePinyin = word.pinyin
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[0-9]/g, "")
+                    .toLowerCase();
+
+                // Find words with similar pinyin (same initial or final)
+                const similarWords = [];
+
+                // Check for exact pinyin matches (without tones)
+                if (pinyinMap[basePinyin]) {
+                    pinyinMap[basePinyin].forEach(w => {
+                        if (w.chinese !== word.chinese && !similarWords.some(sw => sw.chinese === w.chinese)) {
+                            similarWords.push(w);
+                        }
+                    });
+                }
+
+                // Check for partial pinyin matches (first 2-3 characters)
+                Object.keys(pinyinMap).forEach(pinyin => {
+                    if (pinyin !== basePinyin && (
+                        pinyin.startsWith(basePinyin.substring(0, 2)) ||
+                        basePinyin.startsWith(pinyin.substring(0, 2))
+                    )) {
+                        pinyinMap[pinyin].forEach(w => {
+                            if (w.chinese !== word.chinese && !similarWords.some(sw => sw.chinese === w.chinese)) {
+                                similarWords.push(w);
+                            }
+                        });
+                    }
+                });
+
+                // If we don't have enough similar words, add some random ones
+                while (similarWords.length < 5) {
+                    const randomWord = originalWords[Math.floor(Math.random() * originalWords.length)];
+                    if (randomWord.chinese !== word.chinese && !similarWords.some(w => w.chinese === randomWord.chinese)) {
+                        similarWords.push(randomWord);
+                    }
+                }
+
+                similarWordsMap[word.chinese] = similarWords;
+            });
+        }
 
         // Show error message
         function showError(message) {
@@ -939,6 +1011,9 @@
             progressOverviewBtn.addEventListener('click', showProgressOverview);
             closeProgressBtn.addEventListener('click', hideProgressOverview);
 
+            // Save progress button
+            saveProgressBtn.addEventListener('click', saveProgress);
+
             // Keyboard controls
             document.addEventListener('keydown', handleKeydown);
         }
@@ -956,6 +1031,7 @@
             generateQuestion();
             updateUI();
             updateBatchNavigation();
+            saveProgress();
         }
 
         // Switch between pinyin and english mode
@@ -964,6 +1040,7 @@
             document.getElementById('mode-pinyin').classList.toggle('active', pinyinMode);
             document.getElementById('mode-english').classList.toggle('active', !pinyinMode);
             generateQuestion();
+            saveProgress();
         }
 
         // Generate question and options
@@ -990,7 +1067,7 @@
                 ? `${currentWord.pinyin} - ${currentWord.english}`
                 : currentWord.english;
 
-            // Create incorrect options
+            // Create incorrect options using similar words
             const incorrectOptions = generateIncorrectOptions(currentWord);
 
             // Combine and shuffle options
@@ -1007,11 +1084,31 @@
             updateUI();
         }
 
-        // Generate incorrect options
+        // Generate incorrect options using similar words
         function generateIncorrectOptions(correctWord) {
             const incorrectOptions = [];
             const usedWords = new Set([correctWord.chinese]);
 
+            // Get similar words for this word
+            const similarWords = similarWordsMap[correctWord.chinese] || [];
+
+            // Use similar words first
+            for (const similarWord of similarWords) {
+                if (incorrectOptions.length >= 3) break;
+                if (!usedWords.has(similarWord.chinese)) {
+                    usedWords.add(similarWord.chinese);
+
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.textContent = isPinyinMode
+                        ? `${similarWord.pinyin} - ${similarWord.english}`
+                        : similarWord.english;
+
+                    incorrectOptions.push(option);
+                }
+            }
+
+            // If we need more options, add random ones
             while (incorrectOptions.length < 3) {
                 const randomWord = originalWords[Math.floor(Math.random() * originalWords.length)];
 
@@ -1103,6 +1200,7 @@
             }
 
             updateUI();
+            saveProgress();
 
             setTimeout(() => {
                 nextQuestion();
@@ -1192,6 +1290,7 @@
             document.querySelector('.question-container').style.display = 'flex';
             generateQuestion();
             updateUI();
+            saveProgress();
         }
 
         // Show completion screen
@@ -1223,6 +1322,7 @@
             completionNextBatchBtn.textContent = isReviewMode ? 'Back to Batch' : 'Next Batch';
 
             completionScreen.style.display = 'flex';
+            saveProgress();
         }
 
         // Start next batch
@@ -1244,6 +1344,7 @@
             generateQuestion();
             updateUI();
             updateBatchNavigation();
+            saveProgress();
         }
 
         // Go to previous batch
@@ -1255,6 +1356,7 @@
                 generateQuestion();
                 updateUI();
                 updateBatchNavigation();
+                saveProgress();
             }
         }
 
@@ -1268,13 +1370,14 @@
                 generateQuestion();
                 updateUI();
                 updateBatchNavigation();
+                saveProgress();
             }
         }
 
         // Update batch navigation UI
         function updateBatchNavigation() {
             const totalBatches = Math.ceil(originalWords.length / batchSize);
-            batchInfo.textContent = `Batch ${currentBatch + 1} of ${totalBatches}`;
+            batchInfo.textContent = `Batch ${currentBatch + 1} of ${totalBatches} (${totalWordsCount} total words)`;
 
             // Enable/disable buttons
             prevBatchBtn.disabled = currentBatch === 0;
@@ -1333,10 +1436,76 @@
                         updateUI();
                         updateBatchNavigation();
                         hideProgressOverview();
+                        saveProgress();
                     }
                 });
 
                 batchProgress.appendChild(batchItem);
+            }
+        }
+
+        // Save progress to localStorage
+        function saveProgress() {
+            const progressData = {
+                currentBatch,
+                batchSize,
+                currentIndex,
+                correctAnswers,
+                totalAnswered,
+                wrongAnswers,
+                isPinyinMode,
+                isReviewMode,
+                reviewWords,
+                completedBatches,
+                batchPerformance,
+                totalWordsCount
+            };
+
+            localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
+
+            // Show a temporary confirmation
+            const originalText = saveProgressBtn.textContent;
+            saveProgressBtn.textContent = '✓ Saved';
+            setTimeout(() => {
+                saveProgressBtn.textContent = originalText;
+            }, 1500);
+        }
+
+        // Load progress from localStorage
+        function loadProgress() {
+            const savedProgress = localStorage.getItem('hskQuizProgress');
+            if (savedProgress) {
+                try {
+                    const progress = JSON.parse(savedProgress);
+
+                    currentBatch = progress.currentBatch || 0;
+                    batchSize = progress.batchSize || 50;
+                    currentIndex = progress.currentIndex || 0;
+                    correctAnswers = progress.correctAnswers || 0;
+                    totalAnswered = progress.totalAnswered || 0;
+                    wrongAnswers = progress.wrongAnswers || [];
+                    isPinyinMode = progress.isPinyinMode !== undefined ? progress.isPinyinMode : true;
+                    isReviewMode = progress.isReviewMode || false;
+                    reviewWords = progress.reviewWords || [];
+                    completedBatches = progress.completedBatches || [];
+                    batchPerformance = progress.batchPerformance || {};
+                    totalWordsCount = progress.totalWordsCount || originalWords.length;
+
+                    // Update UI based on loaded progress
+                    document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
+                    document.getElementById('mode-english').classList.toggle('active', !isPinyinMode);
+
+                    if (reviewWords.length > 0) {
+                        reviewWrongBtn.style.display = 'block';
+                    }
+
+                    loadCurrentBatch();
+                    updateUI();
+                    updateBatchNavigation();
+
+                } catch (e) {
+                    console.error('Error loading saved progress:', e);
+                }
             }
         }
 
@@ -1370,6 +1539,7 @@
 
             if (success) {
                 loadCurrentBatch();
+                loadProgress(); // Load saved progress after vocabulary is loaded
                 generateQuestion();
                 updateUI();
                 updateBatchNavigation();
