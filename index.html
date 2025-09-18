@@ -804,118 +804,14 @@
         const batchProgress = document.getElementById('batch-progress');
 
         // Load vocabulary from JSON file
-        async function loadVocabulary() {
+       async function loadVocabulary() {
             try {
-                // For demo purposes, we'll create sample data if vocabulary.json doesn't exist
-                // In a real scenario, you would fetch from an actual file
-                const sampleData = {
-                    words: [],
-                    level: "3",
-                    description: "HSK Level 3 Vocabulary"
-                };
+                const response = await fetch('./vocabulary.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
-                // Generate sample words
-                const sampleWords = [
-                    {chinese: "你好", pinyin: "nǐ hǎo", english: "hello"},
-                    {chinese: "谢谢", pinyin: "xiè xie", english: "thank you"},
-                    {chinese: "再见", pinyin: "zài jiàn", english: "goodbye"},
-                    {chinese: "请", pinyin: "qǐng", english: "please"},
-                    {chinese: "对不起", pinyin: "duì bu qǐ", english: "sorry"},
-                    {chinese: "是", pinyin: "shì", english: "yes"},
-                    {chinese: "不", pinyin: "bù", english: "no"},
-                    {chinese: "人", pinyin: "rén", english: "person"},
-                    {chinese: "中国", pinyin: "Zhōng guó", english: "China"},
-                    {chinese: "美国", pinyin: "Měi guó", english: "USA"},
-                    {chinese: "老师", pinyin: "lǎo shī", english: "teacher"},
-                    {chinese: "学生", pinyin: "xué sheng", english: "student"},
-                    {chinese: "学校", pinyin: "xué xiào", english: "school"},
-                    {chinese: "工作", pinyin: "gōng zuò", english: "work"},
-                    {chinese: "公司", pinyin: "gōng sī", english: "company"},
-                    {chinese: "电脑", pinyin: "diàn nǎo", english: "computer"},
-                    {chinese: "手机", pinyin: "shǒu jī", english: "mobile phone"},
-                    {chinese: "书", pinyin: "shū", english: "book"},
-                    {chinese: "笔", pinyin: "bǐ", english: "pen"},
-                    {chinese: "水", pinyin: "shuǐ", english: "water"},
-                    {chinese: "咖啡", pinyin: "kā fēi", english: "coffee"},
-                    {chinese: "茶", pinyin: "chá", english: "tea"},
-                    {chinese: "饭", pinyin: "fàn", english: "meal"},
-                    {chinese: "水果", pinyin: "shuǐ guǒ", english: "fruit"},
-                    {chinese: "苹果", pinyin: "píng guǒ", english: "apple"},
-                    {chinese: "朋友", pinyin: "péng you", english: "friend"},
-                    {chinese: "家庭", pinyin: "jiā tíng", english: "family"},
-                    {chinese: "爸爸", pinyin: "bà ba", english: "father"},
-                    {chinese: "妈妈", pinyin: "mā ma", english: "mother"},
-                    {chinese: "哥哥", pinyin: "gē ge", english: "older brother"},
-                    {chinese: "弟弟", pinyin: "dì di", english: "younger brother"},
-                    {chinese: "姐姐", pinyin: "jiě jie", english: "older sister"},
-                    {chinese: "妹妹", pinyin: "mèi mei", english: "younger sister"},
-                    {chinese: "时间", pinyin: "shí jiān", english: "time"},
-                    {chinese: "今天", pinyin: "jīn tiān", english: "today"},
-                    {chinese: "明天", pinyin: "míng tiān", english: "tomorrow"},
-                    {chinese: "昨天", pinyin: "zuó tiān", english: "yesterday"},
-                    {chinese: "现在", pinyin: "xiàn zài", english: "now"},
-                    {chinese: "以后", pinyin: "yǐ hòu", english: "after"},
-                    {chinese: "以前", pinyin: "yǐ qián", english: "before"},
-                    {chinese: "喜欢", pinyin: "xǐ huān", english: "to like"},
-                    {chinese: "爱", pinyin: "ài", english: "to love"},
-                    {chinese: "看", pinyin: "kàn", english: "to look"},
-                    {chinese: "见", pinyin: "jiàn", english: "to see"},
-                    {chinese: "听", pinyin: "tīng", english: "to listen"},
-                    {chinese: "说", pinyin: "shuō", english: "to speak"},
-                    {chinese: "读", pinyin: "dú", english: "to read"},
-                    {chinese: "写", pinyin: "xiě", english: "to write"},
-                    {chinese: "学习", pinyin: "xué xí", english: "to study"},
-                    {chinese: "工作", pinyin: "gōng zuò", english: "to work"},
-                    {chinese: "吃", pinyin: "chī", english: "to eat"},
-                    {chinese: "喝", pinyin: "hē", english: "to drink"},
-                    {chinese: "去", pinyin: "qù", english: "to go"},
-                    {chinese: "来", pinyin: "lái", english: "to come"},
-                    {chinese: "回", pinyin: "huí", english: "to return"},
-                    {chinese: "买", pinyin: "mǎi", english: "to buy"},
-                    {chinese: "卖", pinyin: "mài", english: "to sell"},
-                    {chinese: "做", pinyin: "zuò", english: "to do"},
-                    {chinese: "坐", pinyin: "zuò", english: "to sit"},
-                    {chinese: "站", pinyin: "zhàn", english: "to stand"},
-                    {chinese: "走", pinyin: "zǒu", english: "to walk"},
-                    {chinese: "跑", pinyin: "pǎo", english: "to run"},
-                    {chinese: "大", pinyin: "dà", english: "big"},
-                    {chinese: "小", pinyin: "xiǎo", english: "small"},
-                    {chinese: "多", pinyin: "duō", english: "many"},
-                    {chinese: "少", pinyin: "shǎo", english: "few"},
-                    {chinese: "好", pinyin: "hǎo", english: "good"},
-                    {chinese: "坏", pinyin: "huài", english: "bad"},
-                    {chinese: "新", pinyin: "xīn", english: "new"},
-                    {chinese: "旧", pinyin: "jiù", english: "old"},
-                    {chinese: "热", pinyin: "rè", english: "hot"},
-                    {chinese: "冷", pinyin: "lěng", english: "cold"},
-                    {chinese: "快", pinyin: "kuài", english: "fast"},
-                    {chinese: "慢", pinyin: "màn", english: "slow"},
-                    {chinese: "高", pinyin: "gāo", english: "tall"},
-                    {chinese: "矮", pinyin: "ǎi", english: "short"},
-                    {chinese: "长", pinyin: "cháng", english: "long"},
-                    {chinese: "短", pinyin: "duǎn", english: "short"},
-                    {chinese: "红", pinyin: "hóng", english: "red"},
-                    {chinese: "蓝", pinyin: "lán", english: "blue"},
-                    {chinese: "绿", pinyin: "lǜ", english: "green"},
-                    {chinese: "黄", pinyin: "huáng", english: "yellow"},
-                    {chinese: "白", pinyin: "bái", english: "white"},
-                    {chinese: "黑", pinyin: "hēi", english: "black"},
-                    {chinese: "一", pinyin: "yī", english: "one"},
-                    {chinese: "二", pinyin: "èr", english: "two"},
-                    {chinese: "三", pinyin: "sān", english: "three"},
-                    {chinese: "四", pinyin: "sì", english: "four"},
-                    {chinese: "五", pinyin: "wǔ", english: "five"},
-                    {chinese: "六", pinyin: "liù", english: "six"},
-                    {chinese: "七", pinyin: "qī", english: "seven"},
-                    {chinese: "八", pinyin: "bā", english: "eight"},
-                    {chinese: "九", pinyin: "jiǔ", english: "nine"},
-                    {chinese: "十", pinyin: "shí", english: "ten"}
-                ];
-
-                sampleData.words = sampleWords;
-
-                // Use sample data
-                const data = sampleData;
+                const data = await response.json();
 
                 // Validate the data structure
                 if (!Array.isArray(data.words)) {
@@ -947,6 +843,7 @@
                 return false;
             }
         }
+
 
         // Show error message
         function showError(message) {
