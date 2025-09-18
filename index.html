@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HSK Vocabulary Quiz</title>
     <style>
-        /* Your existing CSS remains unchanged */
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
@@ -56,6 +55,47 @@
             background: var(--bg-primary);
             display: flex;
             flex-direction: column;
+        }
+
+        /* Loading screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .error-message {
+            background: var(--error);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px;
+            text-align: center;
+            display: none;
         }
 
         /* Header */
@@ -147,22 +187,6 @@
             position: relative;
         }
 
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
         /* Main Content */
         .main-content {
             flex: 1;
@@ -171,7 +195,7 @@
             flex-direction: column;
         }
 
-        /* Compact Controls */
+        /* Controls */
         .top-controls {
             display: flex;
             gap: 8px;
@@ -188,7 +212,7 @@
             border: 1px solid var(--border);
         }
 
-        .mode-btn, .batch-btn {
+        .mode-btn, .batch-btn, .action-btn {
             padding: 8px 12px;
             border: none;
             border-radius: 6px;
@@ -205,6 +229,17 @@
             background: var(--accent);
             color: white;
             box-shadow: 0 2px 4px var(--shadow);
+        }
+
+        .action-btn {
+            background: var(--accent);
+            color: white;
+        }
+
+        .secondary-btn {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
         }
 
         /* Question Area */
@@ -283,19 +318,9 @@
             color: var(--text-primary);
         }
 
-        .option::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .option:hover::before {
-            left: 100%;
+        .option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
         .option:active {
@@ -323,6 +348,177 @@
             animation: shake 0.5s ease;
         }
 
+        /* Review Section */
+        .review-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .review-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .review-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .review-item {
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .review-chinese {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .review-pinyin {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .review-english {
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+
+        .review-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+            gap: 8px;
+        }
+
+        /* Completion Screen */
+        .completion-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .completion-content {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .completion-title {
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .completion-stats {
+            margin-bottom: 24px;
+        }
+
+        .completion-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Batch Navigation */
+        .batch-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .batch-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .batch-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Progress Overview */
+        .progress-overview {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .progress-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .batch-progress {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+        }
+
+        .batch-progress-item {
+            padding: 8px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .batch-progress-item.current {
+            background: var(--accent);
+            color: white;
+        }
+
+        .batch-progress-item.completed {
+            background: var(--success);
+            color: white;
+        }
+
+        .batch-progress-item.review {
+            background: var(--warning);
+            color: white;
+        }
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -334,211 +530,11 @@
             75% { transform: translateX(8px); }
         }
 
-        /* Bottom Controls */
-        .bottom-controls {
-            background: var(--bg-card);
-            padding: 12px 16px;
-            border-top: 1px solid var(--border);
-            position: sticky;
-            bottom: 0;
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .action-btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .action-btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--text-secondary);
-            color: white;
-        }
-
-        /* Modals */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 16px;
-        }
-
-        .modal-content {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 100%;
-            width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 8px 32px var(--shadow);
-            border: 1px solid var(--border);
-        }
-
-        .modal-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 16px;
-            text-align: center;
-            color: var(--text-primary);
-        }
-
-        .modal-stats {
-            background: var(--bg-secondary);
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .wrong-answer {
-            background: var(--bg-secondary);
-            border-left: 4px solid var(--error);
-            padding: 12px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-        }
-
-        .wrong-answer .chinese {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        .wrong-answer .correct {
-            color: var(--success);
-            font-weight: bold;
-        }
-
-        .wrong-answer .selected {
-            color: var(--error);
-            text-decoration: line-through;
-        }
-
-        /* Batch Navigation */
-        .batch-nav {
-            background: var(--bg-secondary);
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .batch-info {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .nav-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .nav-btn.prev {
-            background: var(--text-secondary);
-            color: white;
-        }
-
-        .nav-btn.next {
-            background: var(--accent);
-            color: white;
-        }
-
-        .nav-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Animations */
-        .fade-in {
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Toast Notifications */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            padding: 12px 16px;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px var(--shadow);
-            border: 1px solid var(--border);
-            z-index: 1001;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-
-        .toast.show {
-            transform: translateX(0);
-        }
-
-        /* Hide certain elements on mobile for cleaner experience */
+        /* Responsive design */
         @media (max-width: 768px) {
             .subtitle {
                 display: none;
@@ -554,21 +550,25 @@
                 padding: 14px;
             }
 
-            .modal-content {
-                margin: 8px;
-                padding: 20px;
+            .review-list {
+                grid-template-columns: 1fr;
             }
 
-            .batch-nav {
-                padding: 8px 12px;
+            .top-controls {
+                flex-direction: column;
             }
 
-            .batch-info {
-                font-size: 0.8rem;
+            .batch-navigation {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .batch-buttons {
+                width: 100%;
+                justify-content: center;
             }
         }
 
-        /* Ultra-compact mode for small screens */
         @media (max-width: 480px) {
             .header {
                 padding: 8px 12px;
@@ -601,47 +601,33 @@
                 font-size: 0.95rem;
             }
 
-            .bottom-controls {
-                padding: 8px 12px;
+            .review-chinese {
+                font-size: 1.3rem;
             }
 
-            .action-btn {
-                padding: 8px 12px;
-                font-size: 0.85rem;
+            .batch-progress {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             }
-        }
-
-        /* Loading state */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            margin: -10px 0 0 -10px;
-            border: 2px solid var(--accent);
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body data-theme="light">
-    <div class="container">
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading HSK vocabulary...</div>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-message" id="error-message">
+        Failed to load vocabulary. Please check that the vocabulary.json file is in the correct location.
+    </div>
+
+    <div class="container" style="display: none;" id="main-container">
         <!-- Header -->
         <header class="header">
             <div class="header-top">
-                <h1 class="title">🎯 HSK 4 Quiz</h1>
+                <h1 class="title">HSK Quiz</h1>
                 <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
                     <span id="theme-icon">🌙</span>
                 </button>
@@ -674,21 +660,12 @@
             <div class="progress-bar" id="progress-bar"></div>
         </div>
 
-        <!-- Batch Navigation -->
-        <div class="batch-nav">
-            <div class="batch-info" id="batch-info">Batch 1 of 2 (50 words)</div>
-            <div class="nav-buttons">
-                <button class="nav-btn prev" id="prev-batch">‹</button>
-                <button class="nav-btn next" id="next-batch">›</button>
-            </div>
-        </div>
-
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Compact Controls -->
+            <!-- Controls -->
             <div class="top-controls">
                 <div class="control-group">
-                    <button class="mode-btn active" id="mode-pinyin">📝 Pinyin</button>
+                    <button class="mode-btn active" id="mode-pinyin">🔤 Pinyin</button>
                     <button class="mode-btn" id="mode-english">🇺🇸 English</button>
                 </div>
                 <div class="control-group">
@@ -696,6 +673,14 @@
                     <button class="batch-btn active" data-size="50">50</button>
                     <button class="batch-btn" data-size="100">100</button>
                     <button class="batch-btn" data-size="all">All</button>
+                </div>
+                <div class="control-group">
+                    <button class="action-btn secondary-btn" id="review-wrong-btn" style="display: none;">
+                        📝 Review Wrong
+                    </button>
+                    <button class="action-btn secondary-btn" id="progress-overview-btn">
+                        📊 Progress
+                    </button>
                 </div>
             </div>
 
@@ -705,1625 +690,279 @@
                 <div class="feedback" id="feedback"></div>
                 <div class="options" id="options"></div>
             </div>
-        </main>
 
-        <!-- Bottom Controls -->
-        <div class="bottom-controls">
-            <button class="action-btn btn-primary" id="review-btn">📚 Review</button>
-            <button class="action-btn btn-warning" id="shuffle-btn">🔀 Shuffle</button>
-            <button class="action-btn btn-secondary" id="reset-btn">🔄 Reset</button>
-        </div>
-    </div>
-
-    <!-- Completion Modal -->
-    <div class="modal" id="completion-modal">
-        <div class="modal-content">
-            <h2 class="modal-title">🎉 Batch Complete!</h2>
-            <div class="modal-stats" id="modal-stats"></div>
-            <div id="modal-review"></div>
-            <div class="modal-actions">
-                <button class="action-btn btn-primary" id="continue-next">Next Batch</button>
-                <button class="action-btn btn-warning" id="review-wrong-modal">Review Wrong</button>
-                <button class="action-btn btn-secondary" id="restart-batch">Restart</button>
+            <!-- Batch Navigation -->
+            <div class="batch-navigation">
+                <div class="batch-info" id="batch-info">Batch 1 of 1</div>
+                <div class="batch-buttons">
+                    <button class="action-btn secondary-btn" id="prev-batch-btn" disabled>Previous Batch</button>
+                    <button class="action-btn" id="next-batch-btn">Next Batch</button>
+                </div>
             </div>
-        </div>
+
+            <!-- Review Section -->
+            <div class="review-section" id="review-section">
+                <div class="review-header">
+                    <span>Words to Review</span>
+                    <button class="action-btn secondary-btn" id="close-review-btn">Close</button>
+                </div>
+                <div class="review-list" id="review-list"></div>
+                <div class="review-actions">
+                    <button class="action-btn secondary-btn" id="practice-review-btn">Practice These Words</button>
+                </div>
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="progress-overview" id="progress-overview">
+                <div class="progress-title">Batch Progress Overview</div>
+                <div class="batch-progress" id="batch-progress"></div>
+                <div class="review-actions">
+                    <button class="action-btn secondary-btn" id="close-progress-btn">Close</button>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- Review Modal -->
-    <div class="modal" id="review-modal">
-        <div class="modal-content">
-            <h2 class="modal-title">📚 Wrong Answers Review</h2>
-            <div id="review-content"></div>
-            <div class="modal-actions">
-                <button class="action-btn btn-primary" id="practice-wrong">Practice Wrong</button>
-                <button class="action-btn btn-secondary" onclick="closeReviewModal()">Close</button>
+    <!-- Completion Screen -->
+    <div class="completion-screen" id="completion-screen">
+        <div class="completion-content">
+            <h2 class="completion-title">Batch Complete!</h2>
+            <div class="completion-stats">
+                <div class="completion-stat">
+                    <span>Total Questions:</span>
+                    <span id="completion-total">0</span>
+                </div>
+                <div class="completion-stat">
+                    <span>Correct Answers:</span>
+                    <span id="completion-correct">0</span>
+                </div>
+                <div class="completion-stat">
+                    <span>Wrong Answers:</span>
+                    <span id="completion-wrong">0</span>
+                </div>
+                <div class="completion-stat">
+                    <span>Accuracy:</span>
+                    <span id="completion-accuracy">0%</span>
+                </div>
+            </div>
+            <div class="review-actions">
+                <button class="action-btn secondary-btn" id="completion-review-btn">Review Wrong Answers</button>
+                <button class="action-btn" id="completion-next-batch-btn">Next Batch</button>
             </div>
         </div>
     </div>
 
     <script>
-        // HSK 4 vocabulary data
-        let originalWords = [
-            // Your original word list remains here
-            { chinese: "爱情", pinyin: "àiqíng", english: "Love" },
-            { chinese: "安排", pinyin: "ānpái", english: "arrange" },
-            { chinese: "安全", pinyin: "ānquán", english: "security" },
-            { chinese: "按时", pinyin: "ànshí", english: "on time" },
-            { chinese: "按照", pinyin: "ànzhào", english: "according to" },
-            { chinese: "百分之", pinyin: "bǎifēnzhī", english: "percent" },
-            { chinese: "棒", pinyin: "bàng", english: "stick；excellent" },
-            { chinese: "包子", pinyin: "bāozi", english: "Steamed stuffed bun" },
-            { chinese: "保护", pinyin: "bǎohù", english: "protect" },
-            { chinese: "保证", pinyin: "bǎozhèng", english: "ensure" },
-            { chinese: "抱", pinyin: "bào", english: "Hold" },
-            { chinese: "抱歉", pinyin: "bàoqiàn", english: "feel sorry" },
-            { chinese: "报名", pinyin: "bàomíng", english: "sign up" },
-            { chinese: "倍", pinyin: "bèi", english: "times" },
-            { chinese: "本来", pinyin: "běnlái", english: "originally" },
-            { chinese: "笨", pinyin: "bèn", english: "stupid" },
-            { chinese: "比如", pinyin: "bǐrú", english: "such as" },
-            { chinese: "毕业", pinyin: "bìyè", english: "graduation" },
-            { chinese: "遍", pinyin: "biàn", english: "Times" },
-            { chinese: "标准", pinyin: "biāozhǔn", english: "standard" },
-            { chinese: "表格", pinyin: "biǎogé", english: "form" },
-            { chinese: "表示", pinyin: "biǎoshì", english: "Express" },
-            { chinese: "表演", pinyin: "biǎoyǎn", english: "perform" },
-            { chinese: "表扬", pinyin: "biǎoyáng", english: "Praise" },
-            { chinese: "饼干", pinyin: "bǐnggān", english: "Biscuits" },
-            { chinese: "并且", pinyin: "bìngqiě", english: "also" },
-            { chinese: "博士", pinyin: "bóshì", english: "doctor" },
-            { chinese: "不过", pinyin: "búguò", english: "However" },
-            { chinese: "不得不", pinyin: "bùdébù", english: "have to" },
-            { chinese: "不管", pinyin: "bùguǎn", english: "no matter" },
-            { chinese: "不仅", pinyin: "bùjǐn", english: "not only" },
-            { chinese: "部分", pinyin: "bùfen", english: "Part" },
-            { chinese: "擦", pinyin: "cā", english: "wipe" },
-            { chinese: "猜", pinyin: "cāi", english: "guess" },
-            { chinese: "材料", pinyin: "cáiliào", english: "Material Science" },
-            { chinese: "参观", pinyin: "cānguān", english: "visit" },
-            { chinese: "餐厅", pinyin: "cāntīng", english: "Restaurant" },
-            { chinese: "差不多", pinyin: "chàbuduō", english: "Almost" },
-            { chinese: "尝", pinyin: "cháng", english: "taste" },
-            { chinese: "长城", pinyin: "chángchéng", english: "The Great Wall" },
-            { chinese: "长江", pinyin: "chángjiāng", english: "The Yangtze River" },
-            { chinese: "场", pinyin: "chǎng", english: "site" },
-            { chinese: "超过", pinyin: "chāoguò", english: "Exceed" },
-            { chinese: "厕所", pinyin: "cèsuǒ", english: "Toilet" },
-            { chinese: "成功", pinyin: "chénggōng", english: "Success" },
-            { chinese: "成为", pinyin: "chéngwéi", english: "Become" },
-            { chinese: "诚实", pinyin: "chéngshí", english: "honest" },
-            { chinese: "乘坐", pinyin: "chéngzuò", english: "ride" },
-            { chinese: "吃惊", pinyin: "chījīng", english: "Be amazed" },
-            { chinese: "重新", pinyin: "chóngxīn", english: "again" },
-            { chinese: "抽烟", pinyin: "chōuyān", english: "smoking" },
-            { chinese: "出差", pinyin: "chūchāi", english: "A business travel" },
-            { chinese: "出发", pinyin: "chūfā", english: "Set out" },
-            { chinese: "出生", pinyin: "chūshēng", english: "Birth" },
-            { chinese: "出现", pinyin: "chūxiàn", english: "Appear" },
-            { chinese: "厨房", pinyin: "chúfáng", english: "Kitchen" },
-            { chinese: "传真", pinyin: "chuánzhēn", english: "Fax" },
-            { chinese: "窗户", pinyin: "chuānghu", english: "Window" },
-            { chinese: "词语", pinyin: "cíyǔ", english: "terms, words" },
-            { chinese: "从来", pinyin: "cónglái", english: "Always" },
-            { chinese: "粗心", pinyin: "cūxīn", english: "careless" },
-            { chinese: "存", pinyin: "cún", english: "Deposit" },
-            { chinese: "错误", pinyin: "cuòwù", english: "error" },
-            { chinese: "答案", pinyin: "dá’àn", english: "Answer" },
-            { chinese: "打招呼", pinyin: "dǎzhāohu", english: "Say hello" },
-            { chinese: "打扮", pinyin: "dǎban", english: "dress up" },
-            { chinese: "打扰", pinyin: "dǎrǎo", english: "Disturb" },
-            { chinese: "打印", pinyin: "dǎyìn", english: "Print" },
-            { chinese: "打折", pinyin: "dǎzhé", english: "Discount" },
-            { chinese: "打针", pinyin: "dǎzhēn", english: "To make an injection" },
-            { chinese: "大概", pinyin: "dàgài", english: "Probably" },
-            { chinese: "大使馆", pinyin: "dàshǐguǎn", english: "Embassy" },
-            { chinese: "大约", pinyin: "dàyuē", english: "about" },
-            { chinese: "戴", pinyin: "dài", english: "wear" },
-            { chinese: "大夫", pinyin: "dàifu", english: "Doctor" },
-            { chinese: "当", pinyin: "dāng", english: "When" },
-            { chinese: "当时", pinyin: "dāngshí", english: "at that time" },
-            { chinese: "刀", pinyin: "dāo", english: "knife" },
-            { chinese: "导游", pinyin: "dǎoyóu", english: "Guide" },
-            { chinese: "倒", pinyin: "dào", english: "inverted" },
-            { chinese: "到处", pinyin: "dàochù", english: "everywhere" },
-            { chinese: "到底", pinyin: "dàodǐ", english: "To the end" },
-            { chinese: "道歉", pinyin: "dàoqiàn", english: "apologize" },
-            { chinese: "得意", pinyin: "déyì", english: "Proud" },
-            { chinese: "地点", pinyin: "dìdiǎn", english: "location" },
-            { chinese: "得（助动词）", pinyin: "děi", english: "have to" },
-            { chinese: "登机牌", pinyin: "dēngjīpái", english: "Boarding pass" },
-            { chinese: "等 （动）", pinyin: "děng", english: "Wait (verb)" },
-            { chinese: "低", pinyin: "dī", english: "low" },
-            { chinese: "底", pinyin: "dǐ", english: "bottom" },
-            { chinese: "地球", pinyin: "dìqiú", english: "earth" },
-            { chinese: "地址", pinyin: "dìzhǐ", english: "address" },
-            { chinese: "掉", pinyin: "diào", english: "fall" },
-            { chinese: "调查", pinyin: "diàochá", english: "investigation" },
-            { chinese: "丢", pinyin: "diū", english: "lose" },
-            { chinese: "动作", pinyin: "dòngzuò", english: "action" },
-            { chinese: "堵车", pinyin: "dǔchē", english: "Traffic jam" },
-            { chinese: "肚子", pinyin: "dùzi", english: "belly" },
-            { chinese: "短信", pinyin: "duǎnxìn", english: "Short message" },
-            { chinese: "对于", pinyin: "duìyú", english: "about" },
-            { chinese: "对话", pinyin: "duìhuà", english: "dialogue" },
-            { chinese: "对面", pinyin: "duìmiàn", english: "Opposite side" },
-            { chinese: "而", pinyin: "ér", english: "and" },
-            { chinese: "儿童", pinyin: "értóng", english: "children" },
-            { chinese: "发生", pinyin: "fāshēng", english: "Happen" },
-            { chinese: "发展", pinyin: "fāzhǎn", english: "Development" },
-            { chinese: "法律", pinyin: "fǎlǜ", english: "Law" },
-            { chinese: "翻译", pinyin: "fānyì", english: "translate" },
-            { chinese: "烦恼", pinyin: "fánnǎo", english: "annoyance" },
-            { chinese: "反对", pinyin: "fǎnduì", english: "Opposition" },
-            { chinese: "方法", pinyin: "fāngfǎ", english: "Method" },
-            { chinese: "方面", pinyin: "fāngmiàn", english: "Aspect" },
-            { chinese: "方向", pinyin: "fāngxiàng", english: "direction" },
-            { chinese: "房东", pinyin: "fángdōng", english: "landlord" },
-            { chinese: "放弃", pinyin: "fàngqì", english: "give up" },
-            { chinese: "放暑假", pinyin: "fàngshǔjià", english: "summer vacation" },
-            { chinese: "放松", pinyin: "fàngsōng", english: "Relax" },
-            { chinese: "份", pinyin: "fèn", english: "share (measure word)" },
-            { chinese: "丰富", pinyin: "fēngfù", english: "rich" },
-            { chinese: "否则", pinyin: "fǒuzé", english: "otherwise" },
-            { chinese: "符合", pinyin: "fúhé", english: "accord with" },
-            { chinese: "富", pinyin: "fù", english: "rich" },
-            { chinese: "付款", pinyin: "fùkuǎn", english: "pay" },
-            { chinese: "父亲", pinyin: "fùqīn", english: "father" },
-            { chinese: "复印", pinyin: "fùyìn", english: "To copy" },
-            { chinese: "复杂", pinyin: "fùzá", english: "complex" },
-            { chinese: "负责", pinyin: "fùzé", english: "Be responsible for" },
-            { chinese: "改变", pinyin: "gǎibiàn", english: "change" },
-            { chinese: "干杯", pinyin: "gānbēi", english: "Cheers!" },
-            { chinese: "赶", pinyin: "gǎn", english: "catch up with" },
-            { chinese: "敢", pinyin: "gǎn", english: "dare" },
-            { chinese: "感动", pinyin: "gǎndòng", english: "Be moved" },
-            { chinese: "感觉", pinyin: "gǎnjué", english: "feel" },
-            { chinese: "感情", pinyin: "gǎnqíng", english: "feeling" },
-            { chinese: "感谢", pinyin: "gǎnxiè", english: "Thank" },
-            { chinese: "干", pinyin: "gān", english: "dry" },
-            { chinese: "刚", pinyin: "gāng", english: "just" },
-            { chinese: "高速公路", pinyin: "gāosùgōnglù", english: "Expressway" },
-            { chinese: "胳膊", pinyin: "gēbo", english: "Arm" },
-            { chinese: "各", pinyin: "gè", english: "various" },
-            { chinese: "公里", pinyin: "gōnglǐ", english: "kilometre" },
-            { chinese: "工资", pinyin: "gōngzī", english: "wages" },
-            { chinese: "功夫", pinyin: "gōngfu", english: "Kungfu" },
-            { chinese: "共同", pinyin: "gòngtóng", english: "common" },
-            { chinese: "够", pinyin: "gòu", english: "enough" },
-            { chinese: "购物", pinyin: "gòuwù", english: "Shopping" },
-            { chinese: "估计", pinyin: "gūjì", english: "estimate" },
-            { chinese: "鼓励", pinyin: "gǔlì", english: "encourage" },
-            { chinese: "顾客", pinyin: "gùkè", english: "customer" },
-            { chinese: "故意", pinyin: "gùyì", english: "deliberately" },
-            { chinese: "挂", pinyin: "guà", english: "hang" },
-            { chinese: "关键", pinyin: "guānjiàn", english: "key" },
-            { chinese: "观众", pinyin: "guānzhòng", english: "Audience" },
-            { chinese: "管理", pinyin: "guǎnlǐ", english: "Administration" },
-            { chinese: "光", pinyin: "guāng", english: "light" },
-            { chinese: "广播", pinyin: "guǎngbō", english: "Radio broadcast" },
-            { chinese: "广告", pinyin: "guǎnggào", english: "Advertisement" },
-            { chinese: "逛", pinyin: "guàng", english: "Stroll" },
-            { chinese: "规定", pinyin: "guīdìng", english: "Regulations" },
-            { chinese: "国际", pinyin: "guójì", english: "international" },
-            { chinese: "国籍", pinyin: "guójí", english: "nationality" },
-            { chinese: "果汁", pinyin: "guǒzhī", english: "fruit juice" },
-            { chinese: "过程", pinyin: "guòchéng", english: "process" },
-            { chinese: "海洋", pinyin: "hǎiyáng", english: "ocean" },
-            { chinese: "害羞", pinyin: "hàixiū", english: "Shy" },
-            { chinese: "寒假", pinyin: "hánjià", english: "The winter vacation" },
-            { chinese: "汗", pinyin: "hàn", english: "sweat" },
-            { chinese: "航班", pinyin: "hángbān", english: "flight" },
-            { chinese: "好处", pinyin: "hǎochù", english: "benefit" },
-            { chinese: "好像", pinyin: "hǎoxiàng", english: "Be like, seem" },
-            { chinese: "号码", pinyin: "hàomǎ", english: "number" },
-            { chinese: "合格", pinyin: "hégé", english: "qualified" },
-            { chinese: "合适", pinyin: "héshì", english: "appropriate" },
-            { chinese: "盒子", pinyin: "hézi", english: "Box" },
-            { chinese: "厚", pinyin: "hòu", english: "thick" },
-            { chinese: "后悔", pinyin: "hòuhuǐ", english: "regret" },
-            { chinese: "护士", pinyin: "hùshi", english: "Nurse" },
-            { chinese: "互联网", pinyin: "hùliánwǎng", english: "Internet" },
-            { chinese: "互相", pinyin: "hùxiāng", english: "each other" },
-            { chinese: "怀疑", pinyin: "huáiyí", english: "doubt" },
-            { chinese: "回忆", pinyin: "huíyì", english: "Memory" },
-            { chinese: "活动", pinyin: "huódòng", english: "activity" },
-            { chinese: "活泼", pinyin: "huópō", english: "lively" },
-            { chinese: "火", pinyin: "huǒ", english: "fire" },
-            { chinese: "获得", pinyin: "huòdé", english: "Get" },
-            { chinese: "基础", pinyin: "jīchǔ", english: "Basics" },
-            { chinese: "激动", pinyin: "jīdòng", english: "Excited" },
-            { chinese: "积极", pinyin: "jījí", english: "positive" },
-            { chinese: "积累", pinyin: "jīlěi", english: "accumulation" },
-            { chinese: "及时", pinyin: "jíshí", english: "timely" },
-            { chinese: "即使", pinyin: "jíshǐ", english: "even if" },
-            { chinese: "寄", pinyin: "jì", english: "send" },
-            { chinese: "记者", pinyin: "jìzhě", english: "Reporter" },
-            { chinese: "计划", pinyin: "jìhuà", english: "plan" },
-            { chinese: "既然", pinyin: "jìrán", english: "although" },
-            { chinese: "技术", pinyin: "jìshù", english: "technology" },
-            { chinese: "继续", pinyin: "jìxù", english: "Continue" },
-            { chinese: "家具", pinyin: "jiājù", english: "furniture" },
-            { chinese: "加班", pinyin: "jiābān", english: "overtime work" },
-            { chinese: "加油站", pinyin: "jiāyóuzhàn", english: "Gas station" },
-            { chinese: "假", pinyin: "jiǎ", english: "false" },
-            { chinese: "价格", pinyin: "jiàgé", english: "Price" },
-            { chinese: "坚持", pinyin: "jiānchí", english: "Insist" },
-            { chinese: "减肥", pinyin: "jiǎnféi", english: "Reduce weight" },
-            { chinese: "减少", pinyin: "jiǎnshǎo", english: "reduce" },
-            { chinese: "建议", pinyin: "jiànyì", english: "proposal" },
-            { chinese: "将来", pinyin: "jiānglái", english: "future" },
-            { chinese: "奖金", pinyin: "jiǎngjīn", english: "bonus" },
-            { chinese: "降低", pinyin: "jiàngdī", english: "reduce" },
-            { chinese: "降落", pinyin: "jiàngluò", english: "land" },
-            { chinese: "交", pinyin: "jiāo", english: "hand over" },
-            { chinese: "交流", pinyin: "jiāoliú", english: "Communication" },
-            { chinese: "交通", pinyin: "jiāotōng", english: "traffic" },
-            { chinese: "郊区", pinyin: "jiāoqū", english: "Suburb" },
-            { chinese: "骄傲", pinyin: "jiāo’ào", english: "Proud" },
-            { chinese: "饺子", pinyin: "jiǎozi", english: "Dumplings" },
-            { chinese: "教授", pinyin: "jiàoshòu", english: "professor" },
-            { chinese: "教育", pinyin: "jiàoyù", english: "education" },
-            { chinese: "接受", pinyin: "jiēshòu", english: "accept" },
-            { chinese: "接着", pinyin: "jiēzhe", english: "Next" },
-            { chinese: "结果", pinyin: "jiéguǒ", english: "Result" },
-            { chinese: "节", pinyin: "jié", english: "section, festival" },
-            { chinese: "节约", pinyin: "jiéyuē", english: "save" },
-            { chinese: "解释", pinyin: "jiěshì", english: "explain" },
-            { chinese: "尽管", pinyin: "jǐnguǎn", english: "although" },
-            { chinese: "紧张", pinyin: "jǐnzhāng", english: "Nervous" },
-            { chinese: "进行", pinyin: "jìnxíng", english: "in process of" },
-            { chinese: "禁止", pinyin: "jìnzhǐ", english: "prohibit" },
-            { chinese: "精彩", pinyin: "jīngcǎi", english: "Marvellous" },
-            { chinese: "经济", pinyin: "jīngjì", english: "Economics" },
-            { chinese: "经历", pinyin: "jīnglì", english: "experience" },
-            { chinese: "经验", pinyin: "jīngyàn", english: "experience" },
-            { chinese: "京剧", pinyin: "jīngjù", english: "Beijing opera" },
-            { chinese: "警察", pinyin: "jǐngchá", english: "Policeman" },
-            { chinese: "景色", pinyin: "jǐngsè", english: "scenery" },
-            { chinese: "竟然", pinyin: "jìngrán", english: "Unexpectedly" },
-            { chinese: "竞争", pinyin: "jìngzhēng", english: "compete" },
-            { chinese: "镜子", pinyin: "jìngzi", english: "Mirror" },
-            { chinese: "究竟", pinyin: "jiūjìng", english: "exactly" },
-            { chinese: "举", pinyin: "jǔ", english: "lift" },
-            { chinese: "举办", pinyin: "jǔbàn", english: "hold" },
-            { chinese: "举行", pinyin: "jǔxíng", english: "hold" },
-            { chinese: "拒绝", pinyin: "jùjué", english: "refuse" },
-            { chinese: "距离", pinyin: "jùlí", english: "distance" },
-            { chinese: "聚会", pinyin: "jùhuì", english: "Party" },
-            { chinese: "开玩笑", pinyin: "kāiwánxiào", english: "Make fun of" },
-            { chinese: "开心", pinyin: "kāixīn", english: "Happy" },
-            { chinese: "看法", pinyin: "kànfǎ", english: "view" },
-            { chinese: "考虑", pinyin: "kǎolǜ", english: "Consider" },
-            { chinese: "烤鸭", pinyin: "kǎoyā", english: "Roasted Duck" },
-            { chinese: "棵", pinyin: "kē", english: "Tree (measure word)" },
-            { chinese: "科学", pinyin: "kēxué", english: "science" },
-            { chinese: "咳嗽", pinyin: "késou", english: "cough" },
-            { chinese: "可怜", pinyin: "kělián", english: "Poor" },
-            { chinese: "可是", pinyin: "kěshì", english: "however" },
-            { chinese: "可惜", pinyin: "kěxī", english: "unfortunately" },
-            { chinese: "客厅", pinyin: "kètīng", english: "A living room" },
-            { chinese: "肯定", pinyin: "kěndìng", english: "sure" },
-            { chinese: "空", pinyin: "kōng", english: "empty" },
-            { chinese: "空气", pinyin: "kōngqì", english: "air" },
-            { chinese: "恐怕", pinyin: "kǒngpà", english: "I’m afraid" },
-            { chinese: "苦", pinyin: "kǔ", english: "bitter" },
-            { chinese: "矿泉水", pinyin: "kuàngquánshuǐ", english: "Mineral water" },
-            { chinese: "困", pinyin: "kùn", english: "sleepy" },
-            { chinese: "困难", pinyin: "kùnnan", english: "difficulty" },
-            { chinese: "拉", pinyin: "lā", english: "pull" },
-            { chinese: "垃圾桶", pinyin: "lājītǒng", english: "Trash" },
-            { chinese: "辣", pinyin: "là", english: "spicy" },
-            { chinese: "来自", pinyin: "láizì", english: "Come from" },
-            { chinese: "来不及", pinyin: "láibují", english: "There’s not enough time" },
-            { chinese: "来得及", pinyin: "láidejí", english: "In time" },
-            { chinese: "懒", pinyin: "lǎn", english: "lazy" },
-            { chinese: "浪费", pinyin: "làngfèi", english: "Waste" },
-            { chinese: "浪漫", pinyin: "làngmàn", english: "romantic" },
-            { chinese: "老虎", pinyin: "lǎohǔ", english: "Tiger" },
-            { chinese: "冷静", pinyin: "lěngjìng", english: "calm down" },
-            { chinese: "理发", pinyin: "lǐfà", english: "Haircut" },
-            { chinese: "理解", pinyin: "lǐjiě", english: "Understand" },
-            { chinese: "理想", pinyin: "lǐxiǎng", english: "ideal" },
-            { chinese: "礼貌", pinyin: "lǐmào", english: "politeness" },
-            { chinese: "礼拜天", pinyin: "lǐbàitiān", english: "Sunday" },
-            { chinese: "厉害", pinyin: "lìhai", english: "Fierce" },
-            { chinese: "力气", pinyin: "lìqi", english: "Strength" },
-            { chinese: "例如", pinyin: "lìrú", english: "for example" },
-            { chinese: "俩", pinyin: "liǎ", english: "Two" },
-            { chinese: "连", pinyin: "lián", english: "even" },
-            { chinese: "联系", pinyin: "liánxì", english: "contact" },
-            { chinese: "凉快", pinyin: "liángkuai", english: "Pleasantly cool" },
-            { chinese: "零钱", pinyin: "língqián", english: "Small change" },
-            { chinese: "另外", pinyin: "lìngwài", english: "in addition" },
-            { chinese: "留", pinyin: "liú", english: "stay" },
-            { chinese: "流利", pinyin: "liúlì", english: "fluent" },
-            { chinese: "流行", pinyin: "liúxíng", english: "Popular" },
-            { chinese: "乱", pinyin: "luàn", english: "chaos" },
-            { chinese: "旅行", pinyin: "lǚxíng", english: "travel" },
-            { chinese: "律师", pinyin: "lǜshī", english: "Lawyer" },
-            { chinese: "麻烦", pinyin: "máfan", english: "trouble" },
-            { chinese: "马虎", pinyin: "mǎhu", english: "Careless" },
-            { chinese: "满", pinyin: "mǎn", english: "full" },
-            { chinese: "毛", pinyin: "máo", english: "hair" },
-            { chinese: "毛巾", pinyin: "máojīn", english: "Towel" },
-            { chinese: "美丽", pinyin: "měilì", english: "beautiful" },
-            { chinese: "梦", pinyin: "mèng", english: "dream" },
-            { chinese: "迷路", pinyin: "mílù", english: "Get lost" },
-            { chinese: "密码", pinyin: "mìmǎ", english: "Password" },
-            { chinese: "免费", pinyin: "miǎnfèi", english: "Free of charge" },
-            { chinese: "秒", pinyin: "miǎo", english: "second" },
-            { chinese: "民族", pinyin: "mínzú", english: "Nation" },
-            { chinese: "母亲", pinyin: "mǔqīn", english: "mother" },
-            { chinese: "目的", pinyin: "mùdì", english: "objective" },
-            { chinese: "耐心", pinyin: "nàixīn", english: "patience" },
-            { chinese: "难道", pinyin: "nándào", english: "could it be said that …" },
-            { chinese: "难受", pinyin: "nánshòu", english: "Uncomfortable" },
-            { chinese: "内", pinyin: "nèi", english: "within" },
-            { chinese: "内容", pinyin: "nèiróng", english: "content" },
-            { chinese: "能力", pinyin: "nénglì", english: "ability" },
-            { chinese: "年龄", pinyin: "niánlíng", english: "Age" },
-            { chinese: "弄", pinyin: "nòng", english: "get, make" },
-            { chinese: "暖和", pinyin: "nuǎnhuo", english: "warm" },
-            { chinese: "偶尔", pinyin: "ǒu’ěr", english: "occasionally" },
-            { chinese: "排队", pinyin: "páiduì", english: "queue; stand in a line" },
-            { chinese: "排列", pinyin: "páiliè", english: "array" },
-            { chinese: "判断", pinyin: "pànduàn", english: "judge" },
-            { chinese: "陪", pinyin: "péi", english: "accompany" },
-            { chinese: "批评", pinyin: "pīpíng", english: "criticism" },
-            { chinese: "皮肤", pinyin: "pífū", english: "skin" },
-            { chinese: "脾气", pinyin: "píqi", english: "Bad temper" },
-            { chinese: "篇", pinyin: "piān", english: "piece" },
-            { chinese: "骗", pinyin: "piàn", english: "fool" },
-            { chinese: "乒乓球", pinyin: "pīngpāngqiú", english: "Table Tennis" },
-            { chinese: "平时", pinyin: "píngshí", english: "peacetime" },
-            { chinese: "破", pinyin: "pò", english: "broken" },
-            { chinese: "葡萄", pinyin: "pútao", english: "Grape" },
-            { chinese: "普遍", pinyin: "pǔbiàn", english: "universal" },
-            { chinese: "普通话", pinyin: "pǔtōnghuà", english: "Mandarin" },
-            { chinese: "其次", pinyin: "qícì", english: "Secondly" },
-            { chinese: "其中", pinyin: "qízhōng", english: "among" },
-            { chinese: "气候", pinyin: "qìhòu", english: "climate" },
-            { chinese: "千万", pinyin: "qiānwàn", english: "Must" },
-            { chinese: "签证", pinyin: "qiānzhèng", english: "visa" },
-            { chinese: "敲", pinyin: "qiāo", english: "knock" },
-            { chinese: "桥", pinyin: "qiáo", english: "Bridge" },
-            { chinese: "巧克力", pinyin: "qiǎokèlì", english: "Chocolates" },
-            { chinese: "亲戚", pinyin: "qīnqi", english: "Relative" },
-            { chinese: "轻", pinyin: "qīng", english: "light" },
-            { chinese: "轻松", pinyin: "qīngsōng", english: "Relaxed" },
-            { chinese: "情况", pinyin: "qíngkuàng", english: "Situation" },
-            { chinese: "穷", pinyin: "qióng", english: "poor" },
-            { chinese: "区别", pinyin: "qūbié", english: "Difference" },
-            { chinese: "取", pinyin: "qǔ", english: "take" },
-            { chinese: "全部", pinyin: "quánbù", english: "whole" },
-            { chinese: "缺点", pinyin: "quēdiǎn", english: "shortcoming" },
-            { chinese: "缺少", pinyin: "quēshǎo", english: "Lack" },
-            { chinese: "却", pinyin: "què", english: "but" },
-            { chinese: "确实", pinyin: "quèshí", english: "Exactly" },
-            { chinese: "然而", pinyin: "rán’ér", english: "however" },
-            { chinese: "热闹", pinyin: "rènao", english: "lively" },
-            { chinese: "任何", pinyin: "rènhé", english: "whatever, any" },
-            { chinese: "任务", pinyin: "rènwu", english: "task" },
-            { chinese: "扔", pinyin: "rēng", english: "throw" },
-            { chinese: "仍然", pinyin: "réngrán", english: "still" },
-            { chinese: "日记", pinyin: "rìjì", english: "diary" },
-            { chinese: "入口", pinyin: "rùkǒu", english: "Entrance" },
-            { chinese: "散步", pinyin: "sànbù", english: "Take a walk" },
-            { chinese: "森林", pinyin: "sēnlín", english: "Forest" },
-            { chinese: "沙发", pinyin: "shāfā", english: "Sofa" },
-            { chinese: "商量", pinyin: "shāngliang", english: "discuss" },
-            { chinese: "伤心", pinyin: "shāngxīn", english: "Sad" },
-            { chinese: "稍微", pinyin: "shāowēi", english: "slightly" },
-            { chinese: "勺子", pinyin: "sháozi", english: "Spoon" },
-            { chinese: "社会", pinyin: "shèhuì", english: "Sociology" },
-            { chinese: "深", pinyin: "shēn", english: "deep" },
-            { chinese: "申请", pinyin: "shēnqǐng", english: "Apply" },
-            { chinese: "甚至", pinyin: "shènzhì", english: "Even to the extent that" },
-            { chinese: "生活", pinyin: "shēnghuó", english: "Life" },
-            { chinese: "生命", pinyin: "shēngmìng", english: "life" },
-            { chinese: "生意", pinyin: "shēngyi", english: "business" },
-            { chinese: "省", pinyin: "shěng", english: "province" },
-            { chinese: "剩", pinyin: "shèng", english: "Left" },
-            { chinese: "失败", pinyin: "shībài", english: "fail" },
-            { chinese: "失望", pinyin: "shīwàng", english: "Disappointment" },
-            { chinese: "师傅", pinyin: "shīfu", english: "Master worker" },
-            { chinese: "十分", pinyin: "shífēn", english: "very" },
-            { chinese: "实际", pinyin: "shíjì", english: "Actual" },
-            { chinese: "实在", pinyin: "shízài", english: "really" },
-            { chinese: "使", pinyin: "shǐ", english: "make" },
-            { chinese: "使用", pinyin: "shǐyòng", english: "Use" },
-            { chinese: "是否", pinyin: "shìfǒu", english: "Whether" },
-            { chinese: "适合", pinyin: "shìhé", english: "Fit" },
-            { chinese: "适应", pinyin: "shìyìng", english: "Adapt" },
-            { chinese: "世纪", pinyin: "shìjì", english: "century" },
-            { chinese: "收", pinyin: "shōu", english: "collect" },
-            { chinese: "收入", pinyin: "shōurù", english: "income" },
-            { chinese: "收拾", pinyin: "shōushi", english: "Tidy" },
-            { chinese: "首都", pinyin: "shǒudū", english: "capital" },
-            { chinese: "首先", pinyin: "shǒuxiān", english: "First" },
-            { chinese: "受不了", pinyin: "shòubuliǎo", english: "Cannot bear sth" },
-            { chinese: "受到", pinyin: "shòudào", english: "Suffer" },
-            { chinese: "售货员", pinyin: "shòuhuòyuán", english: "Salesperson" },
-            { chinese: "输", pinyin: "shū", english: "lose, fail" },
-            { chinese: "熟悉", pinyin: "shúxī", english: "be familiar with" },
-            { chinese: "数量", pinyin: "shùliàng", english: "Number" },
-            { chinese: "数字", pinyin: "shùzì", english: "number" },
-            { chinese: "帅", pinyin: "shuài", english: "Handsome" },
-            { chinese: "顺便", pinyin: "shùnbiàn", english: "Incidentally" },
-            { chinese: "顺利", pinyin: "shùnlì", english: "smoothly" },
-            { chinese: "顺序", pinyin: "shùnxù", english: "order" },
-            { chinese: "说明", pinyin: "shuōmíng", english: "Explain" },
-            { chinese: "硕士", pinyin: "shuòshì", english: "master" },
-            { chinese: "死", pinyin: "sǐ", english: "die" },
-            { chinese: "速度", pinyin: "sùdù", english: "speed" },
-            { chinese: "塑料袋", pinyin: "sùliàodài", english: "Plastic bag" },
-            { chinese: "酸", pinyin: "suān", english: "acid" },
-            { chinese: "随便", pinyin: "suíbiàn", english: "casual" },
-            { chinese: "随着", pinyin: "suízhe", english: "along with" },
-            { chinese: "孙子", pinyin: "sūnzi", english: "Grandson" },
-            { chinese: "所有", pinyin: "suǒyǒu", english: "All" },
-            { chinese: "台", pinyin: "tái", english: "platform" },
-            { chinese: "抬", pinyin: "tái", english: "Lift" },
-            { chinese: "态度", pinyin: "tàidu", english: "attitude" },
-            { chinese: "谈", pinyin: "tán", english: "talk" },
-            { chinese: "弹钢琴", pinyin: "tángāngqín", english: "Play the piano" },
-            { chinese: "汤", pinyin: "tāng", english: "soup" },
-            { chinese: "糖", pinyin: "táng", english: "sugar" },
-            { chinese: "躺", pinyin: "tǎng", english: "lie" },
-            { chinese: "趟", pinyin: "tàng", english: "Trip" },
-            { chinese: "讨论", pinyin: "tǎolùn", english: "discuss" },
-            { chinese: "讨厌", pinyin: "tǎoyàn", english: "Hate" },
-            { chinese: "特点", pinyin: "tèdiǎn", english: "Characteristic" },
-            { chinese: "提", pinyin: "tí", english: "carry" },
-            { chinese: "提供", pinyin: "tígōng", english: "provide" },
-            { chinese: "提前", pinyin: "tíqián", english: "in advance" },
-            { chinese: "提醒", pinyin: "tíxǐng", english: "remind" },
-            { chinese: "填空", pinyin: "tiánkòng", english: "Fill in the blanks" },
-            { chinese: "条件", pinyin: "tiáojiàn", english: "condition" },
-            { chinese: "停", pinyin: "tíng", english: "Stop" },
-            { chinese: "挺", pinyin: "tǐng", english: "quite" },
-            { chinese: "通过", pinyin: "tōngguò", english: "through" },
-            { chinese: "通知", pinyin: "tōngzhī", english: "notice" },
-            { chinese: "同时", pinyin: "tóngshí", english: "meanwhile" },
-            { chinese: "同情", pinyin: "tóngqíng", english: "Sympathy" },
-            { chinese: "推", pinyin: "tuī", english: "push" },
-            { chinese: "推迟", pinyin: "tuīchí", english: "delay" },
-            { chinese: "脱", pinyin: "tuō", english: "take off" },
-            { chinese: "袜子", pinyin: "wàzi", english: "Socks" },
-            { chinese: "完全", pinyin: "wánquán", english: "completely" },
-            { chinese: "往往", pinyin: "wǎngwǎng", english: "Often" },
-            { chinese: "网球", pinyin: "wǎngqiú", english: "Tennis" },
-            { chinese: "网站", pinyin: "wǎngzhàn", english: "website" },
-            { chinese: "危险", pinyin: "wēixiǎn", english: "danger" },
-            { chinese: "味道", pinyin: "wèidào", english: "taste" },
-            { chinese: "卫生间", pinyin: "wèishēngjiān", english: "toilet" },
-            { chinese: "温度", pinyin: "wēndù", english: "temperature" },
-            { chinese: "文章", pinyin: "wénzhāng", english: "Article" },
-            { chinese: "污染", pinyin: "wūrǎn", english: "contaminated" },
-            { chinese: "无", pinyin: "wú", english: "nothing" },
-            { chinese: "无聊", pinyin: "wúliáo", english: "Boring" },
-            { chinese: "无论", pinyin: "wúlùn", english: "no matter what" },
-            { chinese: "误会", pinyin: "wùhuì", english: "Misunderstanding" },
-            { chinese: "西红柿", pinyin: "xīhóngshì", english: "Tomato" },
-            { chinese: "吸引", pinyin: "xīyǐn", english: "Attract" },
-            { chinese: "咸", pinyin: "xián", english: "salty" },
-            { chinese: "现金", pinyin: "xiànjīn", english: "cash" },
-            { chinese: "羡慕", pinyin: "xiànmù", english: "Envy" },
-            { chinese: "香", pinyin: "xiāng", english: "fragrant" },
-            { chinese: "相反", pinyin: "xiāngfǎn", english: "Contrary" },
-            { chinese: "相同", pinyin: "xiāngtóng", english: "identical" },
-            { chinese: "详细", pinyin: "xiángxì", english: "detailed" },
-            { chinese: "响", pinyin: "xiǎng", english: "ring" },
-            { chinese: "橡皮", pinyin: "xiàngpí", english: "rubber" },
-            { chinese: "消息", pinyin: "xiāoxi", english: "message" },
-            { chinese: "小吃", pinyin: "xiǎochī", english: "snack" },
-            { chinese: "小伙子", pinyin: "xiǎohuǒzi", english: "Young fellow" },
-            { chinese: "小说", pinyin: "xiǎoshuō", english: "Novel" },
-            { chinese: "笑话", pinyin: "xiàohua", english: "joke" },
-            { chinese: "效果", pinyin: "xiàoguǒ", english: "Effect" },
-            { chinese: "辛苦", pinyin: "xīnkǔ", english: "hard" },
-            { chinese: "心情", pinyin: "xīnqíng", english: "mood" },
-            { chinese: "信封", pinyin: "xìnfēng", english: "envelope" },
-            { chinese: "信息", pinyin: "xìnxī", english: "information" },
-            { chinese: "信心", pinyin: "xìnxīn", english: "confidence" },
-            { chinese: "兴奋", pinyin: "xīngfèn", english: "Excitement" },
-            { chinese: "行", pinyin: "xíng", english: "That’s ok" },
-            { chinese: "醒", pinyin: "xǐng", english: "wake up" },
-            { chinese: "性别", pinyin: "xìngbié", english: "Gender" },
-            { chinese: "性格", pinyin: "xìnggé", english: "character" },
-            { chinese: "幸福", pinyin: "xìngfú", english: "happiness" },
-            { chinese: "修理", pinyin: "xiūlǐ", english: "repair" },
-            { chinese: "许多", pinyin: "xǔduō", english: "many" },
-            { chinese: "学期", pinyin: "xuéqī", english: "Semester" },
-            { chinese: "压力", pinyin: "yālì", english: "pressure" },
-            { chinese: "牙膏", pinyin: "yágāo", english: "toothpaste" },
-            { chinese: "亚洲", pinyin: "yàzhōu", english: "Asia" },
-            { chinese: "呀", pinyin: "ya", english: "ah" },
-            { chinese: "盐", pinyin: "yán", english: "salt" },
-            { chinese: "严格", pinyin: "yángé", english: "strict" },
-            { chinese: "严重", pinyin: "yánzhòng", english: "serious" },
-            { chinese: "研究", pinyin: "yánjiū", english: "research" },
-            { chinese: "演出", pinyin: "yǎnchū", english: "show" },
-            { chinese: "演员", pinyin: "yǎnyuán", english: "performer, actor" },
-            { chinese: "眼镜", pinyin: "yǎnjìng", english: "glasses" },
-            { chinese: "阳光", pinyin: "yángguāng", english: "Sunshine" },
-            { chinese: "养成", pinyin: "yǎngchéng", english: "Cultivate" },
-            { chinese: "样子", pinyin: "yàngzi", english: "A look" },
-            { chinese: "邀请", pinyin: "yāoqǐng", english: "Invitation" },
-            { chinese: "要是", pinyin: "yàoshi", english: "If" },
-            { chinese: "钥匙", pinyin: "yàoshi", english: "Key" },
-            { chinese: "也许", pinyin: "yěxǔ", english: "perhaps" },
-            { chinese: "页", pinyin: "yè", english: "page" },
-            { chinese: "叶子", pinyin: "yèzi", english: "Leaf" },
-            { chinese: "一切", pinyin: "yíqiè", english: "everything" },
-            { chinese: "以", pinyin: "yǐ", english: "with" },
-            { chinese: "以为", pinyin: "yǐwéi", english: "Think" },
-            { chinese: "意见", pinyin: "yìjiàn", english: "Opinion" },
-            { chinese: "艺术", pinyin: "yìshù", english: "Art" },
-            { chinese: "因此", pinyin: "yīncǐ", english: "therefore" },
-            { chinese: "引起", pinyin: "yǐnqǐ", english: "cause" },
-            { chinese: "印象", pinyin: "yìnxiàng", english: "impression" },
-            { chinese: "应聘", pinyin: "yìngpìn", english: "Apply for" },
-            { chinese: "赢", pinyin: "yíng", english: "win" },
-            { chinese: "勇敢", pinyin: "yǒnggǎn", english: "Brave" },
-            { chinese: "永远", pinyin: "yǒngyuǎn", english: "forever" },
-            { chinese: "优点", pinyin: "yōudiǎn", english: "Advantage" },
-            { chinese: "优秀", pinyin: "yōuxiù", english: "excellent" },
-            { chinese: "幽默", pinyin: "yōumò", english: "Humor" },
-            { chinese: "由", pinyin: "yóu", english: "from" },
-            { chinese: "由于", pinyin: "yóuyú", english: "Because" },
-            { chinese: "邮局", pinyin: "yóujú", english: "Post Office" },
-            { chinese: "尤其", pinyin: "yóuqí", english: "especially" },
-            { chinese: "有趣", pinyin: "yǒuqù", english: "interesting" },
-            { chinese: "友好", pinyin: "yǒuhǎo", english: "friendly" },
-            { chinese: "友谊", pinyin: "yǒuyì", english: "friendship" },
-            { chinese: "愉快", pinyin: "yúkuài", english: "Cheerful" },
-            { chinese: "于是", pinyin: "yúshì", english: "Therefore" },
-            { chinese: "与", pinyin: "yǔ", english: "and" },
-            { chinese: "语法", pinyin: "yǔfǎ", english: "grammar" },
-            { chinese: "语言", pinyin: "yǔyán", english: "language" },
-            { chinese: "羽毛球", pinyin: "yǔmáoqiú", english: "Badminton" },
-            { chinese: "预习", pinyin: "yùxí", english: "Preview" },
-            { chinese: "原来", pinyin: "yuánlái", english: "Original" },
-            { chinese: "原谅", pinyin: "yuánliàng", english: "Forgive" },
-            { chinese: "原因", pinyin: "yuányīn", english: "Reason" },
-            { chinese: "约会", pinyin: "yuēhuì", english: "Date" },
-            { chinese: "阅读", pinyin: "yuèdú", english: "Read" },
-            { chinese: "云", pinyin: "yún", english: "cloud" },
-            { chinese: "允许", pinyin: "yǔnxǔ", english: "allow" },
-            { chinese: "杂志", pinyin: "zázhì", english: "Magazine" },
-            { chinese: "咱们", pinyin: "zánmen", english: "We" },
-            { chinese: "暂时", pinyin: "zànshí", english: "temporary" },
-            { chinese: "脏", pinyin: "zāng", english: "dirty" },
-            { chinese: "责任", pinyin: "zérèn", english: "responsibility" },
-            { chinese: "增加", pinyin: "zēngjiā", english: "increase" },
-            { chinese: "占线", pinyin: "zhànxiàn", english: "(line) Busy" },
-            { chinese: "招聘", pinyin: "zhāopìn", english: "recruit" },
-            { chinese: "照", pinyin: "zhào", english: "reflect" },
-            { chinese: "真正", pinyin: "zhēnzhèng", english: "real" },
-            { chinese: "整理", pinyin: "zhěnglǐ", english: "Arrangement" },
-            { chinese: "正常", pinyin: "zhèngcháng", english: "normal" },
-            { chinese: "正好", pinyin: "zhènghǎo", english: "Just right" },
-            { chinese: "正确", pinyin: "zhèngquè", english: "Correct" },
-            { chinese: "正式", pinyin: "zhèngshì", english: "formal" },
-            { chinese: "证明", pinyin: "zhèngmíng", english: "Prove" },
-            { chinese: "之", pinyin: "zhī", english: "of" },
-            { chinese: "支持", pinyin: "zhīchí", english: "Support" },
-            { chinese: "知识", pinyin: "zhīshi", english: "knowledge" },
-            { chinese: "值得", pinyin: "zhídé", english: "Worth" },
-            { chinese: "直接", pinyin: "zhíjiē", english: "direct" },
-            { chinese: "植物", pinyin: "zhíwù", english: "Botany, plant" },
-            { chinese: "职业", pinyin: "zhíyè", english: "Occupation" },
-            { chinese: "指", pinyin: "zhǐ", english: "finger, to point" },
-            { chinese: "只好", pinyin: "zhǐhǎo", english: "have to" },
-            { chinese: "只要", pinyin: "zhǐyào", english: "as long as" },
-            { chinese: "质量", pinyin: "zhìliàng", english: "quality" },
-            { chinese: "至少", pinyin: "zhìshǎo", english: "at least" },
-            { chinese: "重", pinyin: "zhòng", english: "heavy" },
-            { chinese: "重点", pinyin: "zhòngdiǎn", english: "A key" },
-            { chinese: "重视", pinyin: "zhòngshì", english: "importance, attach importance to" },
-            { chinese: "周围", pinyin: "zhōuwéi", english: "around" },
-            { chinese: "主意", pinyin: "zhǔyi", english: "idea" },
-            { chinese: "祝贺", pinyin: "zhùhè", english: "Congratulate" },
-            { chinese: "著名", pinyin: "zhùmíng", english: "famous" },
-            { chinese: "专门", pinyin: "zhuānmén", english: "specialized" },
-            { chinese: "专业", pinyin: "zhuānyè", english: "major" },
-            { chinese: "转", pinyin: "zhuàn", english: "turn" },
-            { chinese: "赚", pinyin: "zhuàn", english: "earn" },
-            { chinese: "准确", pinyin: "zhǔnquè", english: "accuracy" },
-            { chinese: "准时", pinyin: "zhǔnshí", english: "on time" },
-            { chinese: "仔细", pinyin: "zǐxì", english: "careful" },
-            { chinese: "自然", pinyin: "zìrán", english: "natural" },
-            { chinese: "自信", pinyin: "zìxìn", english: "self-confidence" },
-            { chinese: "总结", pinyin: "zǒngjié", english: "summary" },
-            { chinese: "租", pinyin: "zū", english: "rent" },
-            { chinese: "最好", pinyin: "zuìhǎo", english: "Best" },
-            { chinese: "尊重", pinyin: "zūnzhòng", english: "respect" },
-            { chinese: "左右", pinyin: "zuǒyòu", english: "About" },
-            { chinese: "座", pinyin: "zuò", english: "Seat" },
-            { chinese: "作家", pinyin: "zuòjiā", english: "writer" },
-            { chinese: "座位", pinyin: "zuòwèi", english: "seat" },
-            { chinese: "作用", pinyin: "zuòyòng", english: "Effect" },
-            { chinese: "作者", pinyin: "zuòzhě", english: "author" },
-            { chinese: "爱心", pinyin: "àixīn", english: "love" },
-            { chinese: "安装", pinyin: "ānzhuāng", english: "install" },
-            { chinese: "安排", pinyin: "ānpái", english: "arrange" },
-            { chinese: "按", pinyin: "àn", english: "press; push; check; restrain" },
-            { chinese: "按照", pinyin: "ànzhào", english: "according to" },
-            { chinese: "把（介）", pinyin: "bǎ", english: "(particle marking the following noun as a direct object)" },
-            { chinese: "把（量）", pinyin: "bǎ", english: "(measure word)" },
-            { chinese: "把握", pinyin: "bǎwò", english: "grasp" },
-            { chinese: "白（副）", pinyin: "bái", english: "without results; in vain; waste efforts" },
-            { chinese: "白菜", pinyin: "bái cài", english: "Chinese cabbage" },
-            { chinese: "班级", pinyin: "bān jí", english: "class" },
-            { chinese: "搬", pinyin: "bān", english: "turn; move" },
-            { chinese: "搬家", pinyin: "bān jiā", english: "move; move house" },
-            { chinese: "板", pinyin: "bǎn", english: "board; plank; shutter" },
-            { chinese: "办理", pinyin: "bànlǐ", english: "handle" },
-            { chinese: "保", pinyin: "bǎo", english: "defend; protect; keep; guarantee; ensure" },
-            { chinese: "保安", pinyin: "bǎo ān", english: "security guard; public security; ensure safety" },
-            { chinese: "保持", pinyin: "bǎochí", english: "keep" },
-            { chinese: "保存", pinyin: "bǎocún", english: "Preservation" },
-            { chinese: "保护", pinyin: "bǎohù", english: "protect" },
-            { chinese: "保留", pinyin: "bǎoliú", english: "Retain" },
-            { chinese: "保险", pinyin: "bǎoxiǎn", english: "Insurance" },
-            { chinese: "保证", pinyin: "bǎozhèng", english: "ensure" },
-            { chinese: "报（名）", pinyin: "bào", english: "newspaper; periodical; journal; report; telegram" },
-            { chinese: "报到", pinyin: "bàodào", english: "register,check in" },
-            { chinese: "报道", pinyin: "bàodào", english: "report" },
-            { chinese: "报告", pinyin: "bàogào", english: "Presentation" },
-            { chinese: "背", pinyin: "bèi", english: "Back" },
-            { chinese: "北部", pinyin: "běi bù", english: "north" },
-            { chinese: "背（名）", pinyin: "bèi", english: "back of the body; back side of an object" },
-            { chinese: "背后", pinyin: "bèi hòu", english: "behind; at the back; in the rear" },
-            { chinese: "被", pinyin: "bèi", english: "cover" },
-            { chinese: "被子", pinyin: "bèizi", english: "quilt" },
-            { chinese: "本来", pinyin: "běnlái", english: "originally" },
-            { chinese: "本领", pinyin: "běnlǐng", english: "ability" },
-            { chinese: "本事", pinyin: "běnshi", english: "Skill" },
-            { chinese: "比较", pinyin: "bǐjiào", english: "compare" },
-            { chinese: "比例", pinyin: "bǐlì", english: "Proportion" },
-            { chinese: "比赛", pinyin: "bǐsài", english: "Match" },
-            { chinese: "必然", pinyin: "bìrán", english: "Inevitable" },
-            { chinese: "必要", pinyin: "bìyào", english: "necessary" },
-            { chinese: "变化", pinyin: "biànhuà", english: "change" },
-            { chinese: "变为", pinyin: "biàn wéi", english: "become; turn into; change into" },
-            { chinese: "标题", pinyin: "biāotí", english: "title; heading" },
-            { chinese: "标准", pinyin: "biāozhǔn", english: "standard" },
-            { chinese: "表达", pinyin: "biǎodá", english: "Expression" },
-            { chinese: "表格", pinyin: "biǎogé", english: "form" },
-            { chinese: "表面", pinyin: "biǎomiàn", english: "surface" },
-            { chinese: "表明", pinyin: "biǎomíng", english: "Indicate" },
-            { chinese: "表现", pinyin: "biǎoxiàn", english: "performance" },
-            { chinese: "表演", pinyin: "biǎoyǎn", english: "perform" },
-            { chinese: "并（副、连）", pinyin: "bìng", english: "and; also; equally; simultaneously; side by side" },
-            { chinese: "并且", pinyin: "bìngqiě", english: "also" },
-            { chinese: "播出", pinyin: "bō chū", english: "broadcast; on the air" },
-            { chinese: "播放", pinyin: "bōfàng", english: "play" },
-            { chinese: "不必", pinyin: "bú bì", english: "need not; not have to" },
-            { chinese: "不断", pinyin: "búduàn", english: "Constantly" },
-            { chinese: "不论", pinyin: "bú lùn", english: "whether; no matter; whether … or" },
-            { chinese: "补", pinyin: "bǔ", english: "repair; mend; patch; supply; make up for" },
-            { chinese: "补充", pinyin: "bǔchōng", english: "supplement" },
-            { chinese: "不安", pinyin: "bù’ān", english: "Uneasy" },
-            { chinese: "不得不", pinyin: "bùdébù", english: "Cannot but" },
-            { chinese: "不光", pinyin: "bù guāng", english: "not only" },
-            { chinese: "不仅", pinyin: "bùjǐn", english: "not only" },
-            { chinese: "布", pinyin: "bù", english: "cloth" },
-            { chinese: "步", pinyin: "bù", english: "step; stage; walk; foot" },
-            { chinese: "部", pinyin: "bù", english: "unit; ministry; department;  part; section" },
-            { chinese: "部门", pinyin: "bùmén", english: "department" },
-            { chinese: "部长", pinyin: "bù zhǎng", english: "minister; head of a department" },
-            { chinese: "才能", pinyin: "cái néng", english: "talent; ability; gift" },
-            { chinese: "采取", pinyin: "cǎiqǔ", english: "take, adpopt" },
-            { chinese: "采用", pinyin: "cǎi yòng", english: "put to use; adopt; use; employ" },
-            { chinese: "彩色", pinyin: "cǎi sè", english: "multicolour; colour" },
-            { chinese: "曾经", pinyin: "céngjīng", english: "once" },
-            { chinese: "产生", pinyin: "chǎnshēng", english: "produce" },
-            { chinese: "长城", pinyin: "Chángchéng", english: "The Great Wall" },
-            { chinese: "长处", pinyin: "cháng chù", english: "strength; forte; strong point" },
-            { chinese: "长期", pinyin: "cháng qī", english: "over a long period of time; long-term" },
-            { chinese: "厂", pinyin: "chǎng", english: "factory; mill; plant; works" },
-            { chinese: "场合", pinyin: "chǎnghé", english: "occasion" },
-            { chinese: "场所", pinyin: "chǎngsuǒ", english: "place" },
-            { chinese: "超级", pinyin: "chāojí", english: "super" },
-            { chinese: "朝", pinyin: "cháo", english: "towards" },
-            { chinese: "吵", pinyin: "chǎo", english: "Noisy" },
-            { chinese: "吵架", pinyin: "chǎojià", english: "quarrel" },
-            { chinese: "衬衫", pinyin: "chènshān", english: "shirt" },
-            { chinese: "衬衣", pinyin: "chèn yī", english: "shirt" },
-            { chinese: "称为", pinyin: "chēng wéi", english: "call; be called; be known as" },
-            { chinese: "成功", pinyin: "chénggōng", english: "Success" },
-            { chinese: "成果", pinyin: "chéngguǒ", english: "Achievements" },
-            { chinese: "成就", pinyin: "chéngjiù", english: "achievement" },
-            { chinese: "成立", pinyin: "chénglì", english: "establish" },
-            { chinese: "成熟", pinyin: "chéngshú", english: "mature" },
-            { chinese: "成员", pinyin: "chéngyuán", english: "member" },
-            { chinese: "成长", pinyin: "chéngzhǎng", english: "Grow up" },
-            { chinese: "城", pinyin: "chéng", english: "city; town" },
-            { chinese: "城市", pinyin: "chéngshì", english: "City" },
-            { chinese: "程度", pinyin: "chéngdù", english: "degree" },
-            { chinese: "持续", pinyin: "chíxù", english: "Continued" },
-            { chinese: "充满", pinyin: "chōngmǎn", english: "full of" },
-            { chinese: "重", pinyin: "zhòng", english: "heavy" },
-            { chinese: "初", pinyin: "chū", english: "beginning; start; basis; at the beginning of" },
-            { chinese: "初（初一）", pinyin: "chū （chū yī）", english: "prefix (first grade of junior high school )" },
-            { chinese: "初步", pinyin: "chūbù", english: "preliminary" },
-            { chinese: "初级", pinyin: "chūjí", english: "primary" },
-            { chinese: "初中", pinyin: "chū zhōng", english: "junior high school" },
-            { chinese: "除了", pinyin: "chúle", english: "except" },
-            { chinese: "处理", pinyin: "chǔlǐ", english: "Handle" },
-            { chinese: "传", pinyin: "chuán", english: "pass; pass on; hand down; impart; spread; transmit" },
-            { chinese: "传播", pinyin: "chuánbō", english: "spread" },
-            { chinese: "传来", pinyin: "chuán lái", english: "came; come through" },
-            { chinese: "传说", pinyin: "chuánshuō", english: "Legend" },
-            { chinese: "创新", pinyin: "chuàngxīn", english: "innovate" },
-            { chinese: "创业", pinyin: "chuàngyè", english: "carve out" },
-            { chinese: "创造", pinyin: "chuàngzào", english: "create" },
-            { chinese: "创作", pinyin: "chuàngzuò", english: "A literary creation" },
-            { chinese: "从来", pinyin: "cónglái", english: "Always" },
-            { chinese: "从前", pinyin: "cóngqián", english: "before" },
-            { chinese: "从事", pinyin: "cóngshì", english: "Be engaged in" },
-            { chinese: "村", pinyin: "cūn", english: "village; hamlet" },
-            { chinese: "存", pinyin: "cún", english: "Deposit" },
-            { chinese: "存在", pinyin: "cúnzài", english: "existence" },
-            { chinese: "错误", pinyin: "cuòwù", english: "error" },
-            { chinese: "达到", pinyin: "dádào", english: "Achieve" },
-            { chinese: "打破", pinyin: "dǎ pò", english: "break; smash" },
-            { chinese: "打听", pinyin: "dǎting", english: "Inquire" },
-            { chinese: "大概", pinyin: "dàgài", english: "Probably" },
-            { chinese: "大使馆", pinyin: "dàshǐguǎn", english: "Embassy" },
-            { chinese: "大约", pinyin: "dàyuē", english: "about" },
-            { chinese: "大夫", pinyin: "dàifu", english: "Doctor" },
-            { chinese: "代", pinyin: "dài", english: "substitute; replace; take the place of" },
-            { chinese: "代表", pinyin: "dàibiǎo", english: "representative" },
-            { chinese: "代表团", pinyin: "dài biǎo tuán", english: "delegation; mission; deputation" },
-            { chinese: "带动", pinyin: "dài dòng", english: "drive; spur" },
-            { chinese: "带领", pinyin: "dàilǐng", english: "lead" },
-            { chinese: "单元", pinyin: "dānyuán", english: "unit" },
-            { chinese: "当初", pinyin: "dāngchū", english: "Original" },
-            { chinese: "当地", pinyin: "dāngdì", english: "Local" },
-            { chinese: "当然", pinyin: "dāngrán", english: "Of course" },
-            { chinese: "当中", pinyin: "dāng zhōng", english: "among; in the middle; in the centre" },
-            { chinese: "刀", pinyin: "dāo", english: "knife" },
-            { chinese: "导演", pinyin: "dǎoyǎn", english: "director" },
-            { chinese: "到达", pinyin: "dàodá", english: "Arrive" },
-            { chinese: "到底", pinyin: "dàodǐ", english: "To the end" },
-            { chinese: "得分", pinyin: "dé fēn", english: "score" },
-            { chinese: "等待", pinyin: "děngdài", english: "wait for" },
-            { chinese: "底下", pinyin: "dǐ xià", english: "under; below; beneath" },
-            { chinese: "地区", pinyin: "dìqū", english: "region" },
-            { chinese: "电视剧", pinyin: "diàn shì jù", english: "TV series; television drama" },
-            { chinese: "电视台", pinyin: "diàn shì tái", english: "TV station" },
-            { chinese: "电台", pinyin: "diàntái", english: "radio station" },
-            { chinese: "电子邮件", pinyin: "diànzǐyóujiàn", english: "E-mail" },
-            { chinese: "调", pinyin: "diào", english: "transfer; shift; move" },
-            { chinese: "调查", pinyin: "diàochá", english: "investigation" },
-            { chinese: "订", pinyin: "dìng", english: "conclude; draw up; order; revise" },
-            { chinese: "定期", pinyin: "dìngqī", english: "regular" },
-            { chinese: "东部", pinyin: "dōng bù", english: "east" },
-            { chinese: "动力", pinyin: "dònglì", english: "power, motivation" },
-            { chinese: "动人", pinyin: "dòng rén", english: "moving; touching" },
-            { chinese: "读者", pinyin: "dú zhě", english: "reader" },
-            { chinese: "短处", pinyin: "duǎn chù", english: "shortcoming; demerit" },
-            { chinese: "短裤", pinyin: "duǎn kù", english: "shorts" },
-            { chinese: "短期", pinyin: "duǎn qī", english: "short term" },
-            { chinese: "断", pinyin: "duàn", english: "break" },
-            { chinese: "队员", pinyin: "duì yuán", english: "team member" },
-            { chinese: "对待", pinyin: "duìdài", english: "treat" },
-            { chinese: "对方", pinyin: "duìfāng", english: "Other party" },
-            { chinese: "对手", pinyin: "duìshǒu", english: "Opponent" },
-            { chinese: "对象", pinyin: "duìxiàng", english: "object" },
-            { chinese: "顿", pinyin: "dùn", english: "Meal" },
-            { chinese: "发表", pinyin: "fābiǎo", english: "Publish" },
-            { chinese: "发出", pinyin: "fā chū", english: "issue; send out; give off; emit" },
-            { chinese: "发达", pinyin: "fādá", english: "developed" },
-            { chinese: "发动", pinyin: "fādòng", english: "Launch" },
-            { chinese: "发明", pinyin: "fāmíng", english: "Invention" },
-            { chinese: "发生", pinyin: "fāshēng", english: "Happen" },
-            { chinese: "发送", pinyin: "fā sòng", english: "send; transmit; dispatch; ship; forward" },
-            { chinese: "发言", pinyin: "fāyán", english: "speak" },
-            { chinese: "发展", pinyin: "fāzhǎn", english: "Development" },
-            { chinese: "反对", pinyin: "fǎnduì", english: "Opposition" },
-            { chinese: "反复", pinyin: "fǎnfù", english: "Repeatedly" },
-            { chinese: "反应", pinyin: "fǎnyìng", english: "reaction" },
-            { chinese: "反正", pinyin: "fǎnzhèng", english: "anyway" },
-            { chinese: "范围", pinyin: "fànwéi", english: "Range" },
-            { chinese: "方式", pinyin: "fāngshì", english: "mode" },
-            { chinese: "防", pinyin: "fáng", english: "guard against; defend" },
-            { chinese: "防止", pinyin: "fángzhǐ", english: "Prevent" },
-            { chinese: "房东", pinyin: "fángdōng", english: "landlord" },
-            { chinese: "房屋", pinyin: "fáng wū", english: "houses; buildings; tenement" },
-            { chinese: "房租", pinyin: "fáng zū", english: "rent" },
-            { chinese: "访问", pinyin: "fǎngwèn", english: "Visit" },
-            { chinese: "放到", pinyin: "fàng dào", english: "put to; put into" },
-            { chinese: "飞行", pinyin: "fēi xíng", english: "flight; flying" },
-            { chinese: "费", pinyin: "fèi", english: "fee; cost" },
-            { chinese: "费用", pinyin: "fèi yòng", english: "cost; expenses; outlay" },
-            { chinese: "分别", pinyin: "fēnbié", english: "part" },
-            { chinese: "分配", pinyin: "fēnpèi", english: "distribution" },
-            { chinese: "分组", pinyin: "fēn zǔ", english: "grouping" },
-            { chinese: "丰富", pinyin: "fēngfù", english: "rich" },
-            { chinese: "风险", pinyin: "fēngxiǎn", english: "risk" },
-            { chinese: "否定", pinyin: "fǒudìng", english: "negative" },
-            { chinese: "否认", pinyin: "fǒurèn", english: "deny" },
-            { chinese: "服装", pinyin: "fúzhuāng", english: "costume; dress" },
-            { chinese: "福", pinyin: "fú", english: "blessing; good fortune" },
-            { chinese: "父母", pinyin: "fù mǔ", english: "father and mother; parents" },
-            { chinese: "父亲", pinyin: "fùqīn", english: "father" },
-            { chinese: "付", pinyin: "fù", english: "pay; commit; hand over" },
-            { chinese: "负责", pinyin: "fùzé", english: "Be responsible for" },
-            { chinese: "复印", pinyin: "fùyìn", english: "To copy" },
-            { chinese: "复杂", pinyin: "fùzá", english: "complex" },
-            { chinese: "富", pinyin: "fù", english: "rich" },
-            { chinese: "改进", pinyin: "gǎijìn", english: "Improvement" },
-            { chinese: "改造", pinyin: "gǎi zào", english: "transform; reform" },
-            { chinese: "概念", pinyin: "gàiniàn", english: "concept" },
-            { chinese: "赶", pinyin: "gǎn", english: "catch up with" },
-            { chinese: "赶到", pinyin: "gǎn dào", english: "arrived; get to" },
-            { chinese: "赶紧", pinyin: "gǎnjǐn", english: "Quickly" },
-            { chinese: "赶快", pinyin: "gǎnkuài", english: "Come on" },
-            { chinese: "敢", pinyin: "gǎn", english: "dare" },
-            { chinese: "感冒", pinyin: "gǎnmào", english: "Cold" },
-            { chinese: "感情", pinyin: "gǎnqíng", english: "feeling" },
-            { chinese: "感受", pinyin: "gǎnshòu", english: "feel" },
-            { chinese: "干吗", pinyin: "gàn má", english: "Why" },
-            { chinese: "高速", pinyin: "gāo sù", english: "high speed" },
-            { chinese: "高速公路", pinyin: "gāosùgōnglù", english: "Expressway" },
-            { chinese: "告别", pinyin: "gàobié", english: "farewell" },
-            { chinese: "歌迷", pinyin: "gē mí", english: "fan" },
-            { chinese: "歌声", pinyin: "gē shēng", english: "singing" },
-            { chinese: "歌手", pinyin: "gē shǒu", english: "singer; vocalist" },
-            { chinese: "个人", pinyin: "gèrén", english: "personal" },
-            { chinese: "个性", pinyin: "gèxìng", english: "personality" },
-            { chinese: "各", pinyin: "gè", english: "various" },
-            { chinese: "各地", pinyin: "gè dì", english: "various regions; everywhere" },
-            { chinese: "各位", pinyin: "gè wèi", english: "everybody" },
-            { chinese: "各种", pinyin: "gè zhǒng", english: "all kinds; various; every kind" },
-            { chinese: "各自", pinyin: "gèzì", english: "Each" },
-            { chinese: "根本", pinyin: "gēnběn", english: "at all" },
-            { chinese: "更加", pinyin: "gèng jiā", english: "more; even more" },
-            { chinese: "工厂", pinyin: "gōngchǎng", english: "factory" },
-            { chinese: "工程师", pinyin: "gōngchéngshī", english: "Engineer" },
-            { chinese: "工夫", pinyin: "gōng fu", english: "time" },
-            { chinese: "工具", pinyin: "gōngjù", english: "tool" },
-            { chinese: "工业", pinyin: "gōngyè", english: "Industry" },
-            { chinese: "工资", pinyin: "gōngzī", english: "wages" },
-            { chinese: "公布", pinyin: "gōngbù", english: "Publish" },
-            { chinese: "公共", pinyin: "gōng gòng", english: "public; common; community" },
-            { chinese: "公开", pinyin: "gōngkāi", english: "open" },
-            { chinese: "公民", pinyin: "gōngmín", english: "citizen" },
-            { chinese: "公务员", pinyin: "gōng wù yuán", english: "civil servant; public functionary" },
-            { chinese: "功夫", pinyin: "gōngfu", english: "Kungfu" },
-            { chinese: "功课", pinyin: "gōng kè", english: "homework; schoolwork; classwork" },
-            { chinese: "功能", pinyin: "gōngnéng", english: "function" },
-            { chinese: "共同", pinyin: "gòngtóng", english: "common" },
-            { chinese: "共有", pinyin: "gòng yǒu", english: "have altogether; share; owned by all" },
-            { chinese: "姑娘", pinyin: "gūniang", english: "girl" },
-            { chinese: "古", pinyin: "gǔ", english: "ancient; old" },
-            { chinese: "古代", pinyin: "gǔdài", english: "Ancient" },
-            { chinese: "故乡", pinyin: "gùxiāng", english: "Hometown" },
-            { chinese: "挂", pinyin: "guà", english: "hang" },
-            { chinese: "关系", pinyin: "guānxì", english: "relationship" },
-            { chinese: "关注", pinyin: "guān zhù", english: "attention; follow with interest; pay close attention; show solicitude for" },
-            { chinese: "观察", pinyin: "guānchá", english: "observation" },
-            { chinese: "观看", pinyin: "guān kàn", english: "watch; view" },
-            { chinese: "观念", pinyin: "guānniàn", english: "concept" },
-            { chinese: "观众", pinyin: "guānzhòng", english: "Audience" },
-            { chinese: "管", pinyin: "guǎn", english: "control; be in charge of; manage; run" },
-            { chinese: "管理", pinyin: "guǎnlǐ", english: "Administration" },
-            { chinese: "光", pinyin: "guāng", english: "light" },
-            { chinese: "光明", pinyin: "guāngmíng", english: "light" },
-            { chinese: "广播", pinyin: "guǎngbō", english: "Radio broadcast" },
-            { chinese: "广大", pinyin: "guǎngdà", english: "Vast" },
-            { chinese: "规定", pinyin: "guīdìng", english: "Regulations" },
-            { chinese: "规范", pinyin: "guīfàn", english: "criterion; rule" },
-            { chinese: "国内", pinyin: "guó nèi", english: "domestic; internal" },
-            { chinese: "国庆", pinyin: "guó qìng", english: "National Day" },
-            { chinese: "果然", pinyin: "guǒrán", english: "Sure enough" },
-            { chinese: "果汁", pinyin: "guǒzhī", english: "fruit juice" },
-            { chinese: "过程", pinyin: "guòchéng", english: "process" },
-            { chinese: "过去（名）", pinyin: "guò qù", english: "past; old; foretime" },
-            { chinese: "哈哈", pinyin: "hā hā", english: "ha-ha" },
-            { chinese: "海关", pinyin: "hǎiguān", english: "Customs" },
-            { chinese: "害怕", pinyin: "hàipà", english: "Fear" },
-            { chinese: "行", pinyin: "háng", english: "row，line" },
-            { chinese: "好好", pinyin: "hǎo hǎo", english: "really good, really nice" },
-            { chinese: "好奇", pinyin: "hàoqí", english: "Be curious" },
-            { chinese: "合", pinyin: "hé", english: "close; shut; be equal to; add up to; join" },
-            { chinese: "合法", pinyin: "héfǎ", english: "legitimate" },
-            { chinese: "合格", pinyin: "hégé", english: "qualified" },
-            { chinese: "合理", pinyin: "hélǐ", english: "reasonable" },
-            { chinese: "合作", pinyin: "hézuò", english: "cooperation" },
-            { chinese: "和平", pinyin: "hépíng", english: "peace" },
-            { chinese: "红茶", pinyin: "hóng chá", english: "black tea" },
-            { chinese: "红酒", pinyin: "hóng jiǔ", english: "red wine" },
-            { chinese: "后果", pinyin: "hòuguǒ", english: "Consequence" },
-            { chinese: "后面", pinyin: "hòumiàn", english: "behind" },
-            { chinese: "后年", pinyin: "hòu nián", english: "the year after next" },
-            { chinese: "互联网", pinyin: "hùliánwǎng", english: "Internet" },
-            { chinese: "互相", pinyin: "hùxiāng", english: "each other" },
-            { chinese: "划船", pinyin: "huá chuán", english: "row; paddle a boat; go boating" },
-            { chinese: "华人", pinyin: "huá rén", english: "Chinese; ethnic Chinese" },
-            { chinese: "化（现代化）", pinyin: "huà （xiàn dài huà）", english: "suffix (modernize; modernization)" },
-            { chinese: "话剧", pinyin: "huà jù", english: "drama" },
-            { chinese: "话题", pinyin: "huàtí", english: "Topic of conversation" },
-            { chinese: "欢乐", pinyin: "huānlè", english: "Happy" },
-            { chinese: "环", pinyin: "huán", english: "ring; loop; link; annulus" },
-            { chinese: "环保", pinyin: "huán bǎo", english: "environmental protection" },
-            { chinese: "环境", pinyin: "huánjìng", english: "Environment" },
-            { chinese: "会议", pinyin: "huìyì", english: "Meeting" },
-            { chinese: "会员", pinyin: "huì yuán", english: "membership" },
-            { chinese: "活", pinyin: "huó", english: "live; save; work; living; alive" },
-            { chinese: "火（名）", pinyin: "huǒ", english: "fire; anger; temper" },
-            { chinese: "机器", pinyin: "jīqì", english: "machine" },
-            { chinese: "积极", pinyin: "jījí", english: "positive" },
-            { chinese: "基本", pinyin: "jīběn", english: "basic" },
-            { chinese: "基本上", pinyin: "jī běn shàng", english: "basically" },
-            { chinese: "基础", pinyin: "jīchǔ", english: "Basics" },
-            { chinese: "及时", pinyin: "jíshí", english: "timely" },
-            { chinese: "…极了", pinyin: "… jí le", english: "extremely; exceedingly" },
-            { chinese: "集体", pinyin: "jítǐ", english: "collective" },
-            { chinese: "集中", pinyin: "jízhōng", english: "focus" },
-            { chinese: "计算", pinyin: "jìsuàn", english: "Calculation" },
-            { chinese: "记录", pinyin: "jìlù", english: "Record" },
-            { chinese: "记者", pinyin: "jìzhě", english: "Reporter" },
-            { chinese: "纪录", pinyin: "jìlù", english: "Record" },
-            { chinese: "纪念", pinyin: "jìniàn", english: "Anniversary" },
-            { chinese: "技术", pinyin: "jìshù", english: "technology" },
-            { chinese: "继续", pinyin: "jìxù", english: "Continue" },
-            { chinese: "加工", pinyin: "jiāgōng", english: "machining" },
-            { chinese: "加快", pinyin: "jiā kuài", english: "speed up; accelerate" },
-            { chinese: "加强", pinyin: "jiā qiáng", english: "strengthen; reinforce" },
-            { chinese: "家具", pinyin: "jiājù", english: "furniture" },
-            { chinese: "家属", pinyin: "jiāshǔ", english: "family members" },
-            { chinese: "家乡", pinyin: "jiāxiāng", english: "Hometown" },
-            { chinese: "价格", pinyin: "jiàgé", english: "Price" },
-            { chinese: "价钱", pinyin: "jià qián", english: "price" },
-            { chinese: "价值", pinyin: "jiàzhí", english: "value" },
-            { chinese: "架", pinyin: "jià", english: "frame; rack; shelf; stand" },
-            { chinese: "坚持", pinyin: "jiānchí", english: "Insist" },
-            { chinese: "坚决", pinyin: "jiānjué", english: "firm" },
-            { chinese: "坚强", pinyin: "jiānqiáng", english: "Firm" },
-            { chinese: "简单", pinyin: "jiǎndān", english: "simple" },
-            { chinese: "简直", pinyin: "jiǎnzhí", english: "simply" },
-            { chinese: "建", pinyin: "jiàn", english: "build; construct; erect; establish; set up; found" },
-            { chinese: "建成", pinyin: "jiàn chéng", english: "built up" },
-            { chinese: "建立", pinyin: "jiànlì", english: "establish" },
-            { chinese: "建设", pinyin: "jiànshè", english: "build" },
-            { chinese: "建议", pinyin: "jiànyì", english: "proposal" },
-            { chinese: "将近", pinyin: "jiāngjìn", english: "nearly" },
-            { chinese: "将来", pinyin: "jiānglái", english: "future" },
-            { chinese: "交费", pinyin: "jiāo fèi", english: "pay" },
-            { chinese: "交警", pinyin: "jiāo jǐng", english: "traffic police" },
-            { chinese: "交流", pinyin: "jiāoliú", english: "Communication" },
-            { chinese: "交往", pinyin: "jiāowǎng", english: "affiliate with" },
-            { chinese: "交易", pinyin: "jiāoyì", english: "transaction" },
-            { chinese: "叫（介）", pinyin: "jiào", english: "(preposition)" },
-            { chinese: "较", pinyin: "jiào", english: "compare; comparatively; relatively; fairly; quite; rather" },
-            { chinese: "教材", pinyin: "jiàocái", english: "teaching material" },
-            { chinese: "教练", pinyin: "jiàoliàn", english: "coach" },
-            { chinese: "结实", pinyin: "jiēshi", english: "strong" },
-            { chinese: "接待", pinyin: "jiēdài", english: "Reception" },
-            { chinese: "接近", pinyin: "jiējìn", english: "near" },
-            { chinese: "节约", pinyin: "jiéyuē", english: "save" },
-            { chinese: "结合", pinyin: "jiéhé", english: "Combination" },
-            { chinese: "结婚", pinyin: "jiéhūn", english: "marry" },
-            { chinese: "结束", pinyin: "jiéshù", english: "End" },
-            { chinese: "解决", pinyin: "jiějué", english: "Solve" },
-            { chinese: "解开", pinyin: "jiě kāi", english: "undo; untie; unfasten; unbutton" },
-            { chinese: "金", pinyin: "jīn", english: "gold" },
-            { chinese: "金牌", pinyin: "jīn pái", english: "gold medal" },
-            { chinese: "仅", pinyin: "jǐn", english: "only; merely; barely" },
-            { chinese: "仅仅", pinyin: "jǐn jǐn", english: "only; merely; barely" },
-            { chinese: "尽量", pinyin: "jǐnliàng", english: "as far as possible" },
-            { chinese: "紧", pinyin: "jǐn", english: "tight; close; urgent; strict" },
-            { chinese: "紧急", pinyin: "jǐnjí", english: "urgent" },
-            { chinese: "紧张", pinyin: "jǐnzhāng", english: "Nervous" },
-            { chinese: "进步", pinyin: "jìnbù", english: "progress" },
-            { chinese: "进一步", pinyin: "jìn yí bù", english: "go a step further; further" },
-            { chinese: "进展", pinyin: "jìnzhǎn", english: "evolve; get along" },
-            { chinese: "近期", pinyin: "jìn qī", english: "recent" },
-            { chinese: "京剧", pinyin: "jīngjù", english: "Beijing opera" },
-            { chinese: "经济", pinyin: "jīngjì", english: "Economics" },
-            { chinese: "经历", pinyin: "jīnglì", english: "experience" },
-            { chinese: "经验", pinyin: "jīngyàn", english: "experience" },
-            { chinese: "经营", pinyin: "jīngyíng", english: "Management" },
-            { chinese: "精彩", pinyin: "jīngcǎi", english: "Marvellous" },
-            { chinese: "精神", pinyin: "jīngshén", english: "spirit, mind" },
-            { chinese: "精神", pinyin: "jīngshen", english: "lively, vigour" },
-            { chinese: "景色", pinyin: "jǐngsè", english: "scenery" },
-            { chinese: "警察", pinyin: "jǐngchá", english: "Police" },
-            { chinese: "静", pinyin: "jìng", english: "silent; quiet; calm" },
-            { chinese: "久", pinyin: "jiǔ", english: "long" },
-            { chinese: "旧", pinyin: "jiù", english: "used" },
-            { chinese: "救", pinyin: "jiù", english: "save" },
-            { chinese: "就是", pinyin: "jiù shì", english: "precisely; exactly; just like" },
-            { chinese: "就业", pinyin: "jiùyè", english: "take up an occupation" },
-            { chinese: "举办", pinyin: "jǔbàn", english: "hold" },
-            { chinese: "具体", pinyin: "jùtǐ", english: "specific" },
-            { chinese: "具有", pinyin: "jù yǒu", english: "possess; have; be provided with" },
-            { chinese: "剧场", pinyin: "jù chǎng", english: "theater" },
-            { chinese: "据说", pinyin: "jùshuō", english: "allegedly" },
-            { chinese: "决定", pinyin: "juédìng", english: "Decision" },
-            { chinese: "决赛", pinyin: "juésài", english: "Finals" },
-            { chinese: "决心", pinyin: "juéxīn", english: "Determination" },
-            { chinese: "绝对", pinyin: "juéduì", english: "Absolutely" },
-            { chinese: "咖啡", pinyin: "kāfēi", english: "Coffee" },
-            { chinese: "开发", pinyin: "kāifā", english: "Development" },
-            { chinese: "开放", pinyin: "kāifàng", english: "To open up" },
-            { chinese: "开始", pinyin: "kāishǐ", english: "start" },
-            { chinese: "开业", pinyin: "kāi yè", english: "start business; open a private practice" },
-            { chinese: "开展", pinyin: "kāizhǎn", english: "Develop" },
-            { chinese: "看起来", pinyin: "kàn qǐ lái", english: "look like" },
-            { chinese: "看上去", pinyin: "kàn shàng qù", english: "seem" },
-            { chinese: "考验", pinyin: "kǎoyàn", english: "test" },
-            { chinese: "科技", pinyin: "kē jì", english: "science and technology" },
-            { chinese: "可靠", pinyin: "kěkào", english: "reliable" },
-            { chinese: "可乐", pinyin: "kě lè", english: "coke; cola" },
-            { chinese: "克服", pinyin: "kèfú", english: "Overcome" },
-            { chinese: "客观", pinyin: "kèguān", english: "objective" },
-            { chinese: "课程", pinyin: "kèchéng", english: "curriculum" },
-            { chinese: "空", pinyin: "kōng", english: "empty" },
-            { chinese: "空调", pinyin: "kōngtiáo", english: "Air conditioner" },
-            { chinese: "恐怕", pinyin: "kǒngpà", english: "I’m afraid" },
-            { chinese: "空儿", pinyin: "kòngr", english: "free time" },
-            { chinese: "裤子", pinyin: "kùzi", english: "trousers" },
-            { chinese: "快速", pinyin: "kuài sù", english: "fast; high-speed" },
-            { chinese: "困", pinyin: "kùn", english: "sleepy" },
-            { chinese: "困难", pinyin: "kùnnán", english: "difficulty" },
-            { chinese: "浪费", pinyin: "làngfèi", english: "Waste" },
-            { chinese: "老百姓", pinyin: "lǎobǎixìng", english: "Ordinary people" },
-            { chinese: "老板", pinyin: "lǎobǎn", english: "Boss" },
-            { chinese: "老太太", pinyin: "lǎo tài tai", english: "old lady" },
-            { chinese: "老头儿", pinyin: "lǎo tóur", english: "old man" },
-            { chinese: "乐", pinyin: "lè", english: "happy; laugh; cheerful" },
-            { chinese: "乐观", pinyin: "lèguān", english: "optimistic" },
-            { chinese: "类", pinyin: "lèi", english: "class; category; kind; type" },
-            { chinese: "类似", pinyin: "lèisì", english: "Similar" },
-            { chinese: "离婚", pinyin: "líhūn", english: "divorce" },
-            { chinese: "里面", pinyin: "lǐ miàn", english: "inside; interior" },
-            { chinese: "理发", pinyin: "lǐfà", english: "Haircut" },
-            { chinese: "理解", pinyin: "lǐjiě", english: "Understand" },
-            { chinese: "理论", pinyin: "lǐlùn", english: "theory" },
-            { chinese: "理由", pinyin: "lǐyóu", english: "Reason" },
-            { chinese: "力", pinyin: "lì", english: "power; force" },
-            { chinese: "力量", pinyin: "lìliàng", english: "Power" },
-            { chinese: "立刻", pinyin: "lìkè", english: "immediately" },
-            { chinese: "利用", pinyin: "lìyòng", english: "utilize" },
-            { chinese: "连", pinyin: "lián", english: "even" },
-            { chinese: "连忙", pinyin: "liánmáng", english: "Hurriedly" },
-            { chinese: "连续", pinyin: "liánxù", english: "serial" },
-            { chinese: "连续剧", pinyin: "lián xù jù", english: "series; soap opera" },
-            { chinese: "联合", pinyin: "liánhé", english: "union" },
-            { chinese: "联合国", pinyin: "lián hé guó", english: "United Nations" },
-            { chinese: "联系", pinyin: "liánxì", english: "contact" },
-            { chinese: "凉水", pinyin: "liáng shuǐ", english: "cold water; unboiled water" },
-            { chinese: "了", pinyin: "le", english: "past tense marker" },
-            { chinese: "领", pinyin: "lǐng", english: "lead; receive; get; understand" },
-            { chinese: "领导", pinyin: "lǐngdǎo", english: "Leader" },
-            { chinese: "领先", pinyin: "lǐngxiān", english: "keep ahead" },
-            { chinese: "另外", pinyin: "lìngwài", english: "in addition" },
-            { chinese: "另一方面", pinyin: "lìng yì fāng miàn", english: "on the other hand" },
-            { chinese: "留学", pinyin: "liúxué", english: "Overseas Study" },
-            { chinese: "龙", pinyin: "lóng", english: "dragon" },
-            { chinese: "录", pinyin: "lù", english: "record; write down; copy" },
-            { chinese: "录音", pinyin: "lùyīn", english: "Sound recording" },
-            { chinese: "路线", pinyin: "lù xiàn", english: "path; route; way; line" },
-            { chinese: "旅馆", pinyin: "lǚ guǎn", english: "hotel" },
-            { chinese: "旅行社", pinyin: "lǚ xíng shè", english: "travel agency" },
-            { chinese: "绿茶", pinyin: "lǜ chá", english: "green tea" },
-            { chinese: "乱", pinyin: "luàn", english: "chaos" },
-            { chinese: "落后", pinyin: "luòhòu", english: "backward" },
-            { chinese: "麻烦", pinyin: "máfan", english: "trouble" },
-            { chinese: "马", pinyin: "mǎ", english: "Horse" },
-            { chinese: "满足", pinyin: "mǎnzú", english: "satisfy" },
-            { chinese: "慢慢", pinyin: "màn màn", english: "slowly" },
-            { chinese: "毛（名）", pinyin: "máo", english: "a fractional unit of money in China; hair; fur" },
-            { chinese: "毛病", pinyin: "máobìng", english: "Trouble" },
-            { chinese: "没用", pinyin: "méi yòng", english: "useless" },
-            { chinese: "媒体", pinyin: "méitǐ", english: "media" },
-            { chinese: "每", pinyin: "měi", english: "each" },
-            { chinese: "美", pinyin: "měi", english: "beautiful; pretty" },
-            { chinese: "美好", pinyin: "měi hǎo", english: "fine; happy; glorious" },
-            { chinese: "美丽", pinyin: "měilì", english: "beautiful" },
-            { chinese: "美食", pinyin: "měi shí", english: "delicious food ; gourmet" },
-            { chinese: "美术", pinyin: "měishù", english: "Fine Arts" },
-            { chinese: "美元", pinyin: "měi yuán", english: "U.S. dollar" },
-            { chinese: "迷", pinyin: "mí", english: "fan; confused; be crazy about" },
-            { chinese: "米（名）", pinyin: "mǐ", english: "meter; rice" },
-            { chinese: "面对", pinyin: "miànduì", english: "Face" },
-            { chinese: "面积", pinyin: "miànjī", english: "The measure of area" },
-            { chinese: "民间", pinyin: "mínjiān", english: "nongovernmental" },
-            { chinese: "民族", pinyin: "mínzú", english: "Nation" },
-            { chinese: "明确", pinyin: "míngquè", english: "To make clear" },
-            { chinese: "明显", pinyin: "míngxiǎn", english: "obvious" },
-            { chinese: "命运", pinyin: "mìngyùn", english: "fate" },
-            { chinese: "某", pinyin: "mǒu", english: "some" },
-            { chinese: "母亲", pinyin: "mǔqīn", english: "mother" },
-            { chinese: "木头", pinyin: "mùtou", english: "wood" },
-            { chinese: "目标", pinyin: "mùbiāo", english: "target" },
-            { chinese: "目前", pinyin: "mùqián", english: "at present" },
-            { chinese: "奶茶", pinyin: "nǎi chá", english: "milk tea" },
-            { chinese: "男子", pinyin: "nán zǐ", english: "man; male" },
-            { chinese: "南部", pinyin: "nán bù", english: "south" },
-            { chinese: "难道", pinyin: "nándào", english: "could it be said that …" },
-            { chinese: "难度", pinyin: "nán dù", english: "difficulty" },
-            { chinese: "内", pinyin: "nèi", english: "within" },
-            { chinese: "内容", pinyin: "nèiróng", english: "content" },
-            { chinese: "内心", pinyin: "nèi xīn", english: "heart; inner centre" },
-            { chinese: "能不能", pinyin: "néng bù néng", english: "can or not" },
-            { chinese: "能力", pinyin: "nénglì", english: "ability" },
-            { chinese: "年初", pinyin: "nián chū", english: "beginning of the year" },
-            { chinese: "年代", pinyin: "niándài", english: "years" },
-            { chinese: "年底", pinyin: "nián dǐ", english: "end of the year" },
-            { chinese: "年纪", pinyin: "niánjì", english: "Age" },
-            { chinese: "念", pinyin: "niàn", english: "Read" },
-            { chinese: "牛（名）", pinyin: "niú", english: "cattle; ox; cow" },
-            { chinese: "农村", pinyin: "nóngcūn", english: "countryside" },
-            { chinese: "农民", pinyin: "nóngmín", english: "farmer" },
-            { chinese: "农业", pinyin: "nóngyè", english: "Agriculture" },
-            { chinese: "女子", pinyin: "nǚ zǐ", english: "woman; female" },
-            { chinese: "暖和", pinyin: "nuǎnhuo", english: "warm" },
-            { chinese: "怕（副）", pinyin: "pà", english: "perhaps; afraid" },
-            { chinese: "拍", pinyin: "pāi", english: "beat" },
-            { chinese: "排（动）", pinyin: "pái", english: "arrange; put in order; exclude; rehearse" },
-            { chinese: "排名", pinyin: "pái míng", english: "rank" },
-            { chinese: "牌子", pinyin: "pái zi", english: "brand; trademark; plate; sign" },
-            { chinese: "派", pinyin: "pài", english: "send" },
-            { chinese: "判断", pinyin: "pànduàn", english: "judge" },
-            { chinese: "胖", pinyin: "pàng", english: "fat" },
-            { chinese: "跑步", pinyin: "pǎobù", english: "Run" },
-            { chinese: "配", pinyin: "pèi", english: "match; mix; join; fit" },
-            { chinese: "配合", pinyin: "pèihé", english: "Coordination" },
-            { chinese: "批评", pinyin: "pīpíng", english: "criticism" },
-            { chinese: "批准", pinyin: "pīzhǔn", english: "Approval" },
-            { chinese: "皮", pinyin: "pí", english: "skin; leather; fur; cover; sheet" },
-            { chinese: "皮包", pinyin: "pí bāo", english: "purse; briefcase; portfolio" },
-            { chinese: "啤酒", pinyin: "píjiǔ", english: "Beer" },
-            { chinese: "票价", pinyin: "piào jià", english: "ticket price; fare" },
-            { chinese: "评价", pinyin: "píngjià", english: "evaluation" },
-            { chinese: "苹果", pinyin: "píngguǒ", english: "Apple" },
-            { chinese: "破", pinyin: "pò", english: "broken" },
-            { chinese: "破坏", pinyin: "pòhuài", english: "Destruction" },
-            { chinese: "普遍", pinyin: "pǔbiàn", english: "universal" },
-            { chinese: "普及", pinyin: "pǔjí", english: "Universal" },
-            { chinese: "期", pinyin: "qī", english: "period; time; term; expect" },
-            { chinese: "齐", pinyin: "qí", english: "together; uniform; neat; be level with" },
-            { chinese: "其次", pinyin: "qícì", english: "Secondly" },
-            { chinese: "其实", pinyin: "qíshí", english: "actually" },
-            { chinese: "奇怪", pinyin: "qíguài", english: "strange" },
-            { chinese: "气候", pinyin: "qìhòu", english: "climate" },
-            { chinese: "千万", pinyin: "qiānwàn", english: "Must" },
-            { chinese: "前后", pinyin: "qián hòu", english: "front and back; from start to finish; around" },
-            { chinese: "前进", pinyin: "qián jìn", english: "advance; go forward; march" },
-            { chinese: "前面", pinyin: "qiánmiàn", english: "Front" },
-            { chinese: "前往", pinyin: "qián wǎng", english: "go to; leave for; proceed" },
-            { chinese: "强", pinyin: "qiáng", english: "strong; powerful; better" },
-            { chinese: "强大", pinyin: "qiáng dà", english: "powerful; formidable; strong" },
-            { chinese: "强调", pinyin: "qiángdiào", english: "Emphasize" },
-            { chinese: "强烈", pinyin: "qiángliè", english: "strong" },
-            { chinese: "桥", pinyin: "qiáo", english: "Bridge" },
-            { chinese: "巧", pinyin: "qiǎo", english: "opportunely; skilful; deceitful" },
-            { chinese: "亲", pinyin: "qīn", english: "dear; close; intimate; relative" },
-            { chinese: "亲切", pinyin: "qīnqiè", english: "kind" },
-            { chinese: "亲人", pinyin: "qīn rén", english: "relative" },
-            { chinese: "亲自", pinyin: "qīnzì", english: "personally" },
-            { chinese: "情感", pinyin: "qíng gǎn", english: "feeling; emotion" },
-            { chinese: "情况", pinyin: "qíngkuàng", english: "Situation" },
-            { chinese: "请教", pinyin: "qǐngjiào", english: "Consult" },
-            { chinese: "庆祝", pinyin: "qìngzhù", english: "Celebrate" },
-            { chinese: "球迷", pinyin: "qiúmí", english: "fans (ball game)" },
-            { chinese: "区", pinyin: "qū", english: "area; district; region" },
-            { chinese: "区别", pinyin: "qūbié", english: "Difference" },
-            { chinese: "取消", pinyin: "qǔxiāo", english: "cancel" },
-            { chinese: "去世", pinyin: "qùshì", english: "Death" },
-            { chinese: "全场", pinyin: "quán chǎng", english: "the whole audience" },
-            { chinese: "全面", pinyin: "quánmiàn", english: "comprehensive" },
-            { chinese: "全球", pinyin: "quán qiú", english: "global; the whole world" },
-            { chinese: "缺", pinyin: "quē", english: "be short of; lack" },
-            { chinese: "缺点", pinyin: "quēdiǎn", english: "shortcoming" },
-            { chinese: "缺少", pinyin: "quēshǎo", english: "Lack" },
-            { chinese: "确保", pinyin: "quèbǎo", english: "ensure" },
-            { chinese: "确定", pinyin: "quèdìng", english: "Determine" },
-            { chinese: "确实", pinyin: "quèshí", english: "Exactly" },
-            { chinese: "裙子", pinyin: "qúnzi", english: "skirt" },
-            { chinese: "群", pinyin: "qún", english: "group" },
-            { chinese: "热爱", pinyin: "rè’ài", english: "Ardently love" },
-            { chinese: "热烈", pinyin: "rèliè", english: "warm" },
-            { chinese: "人才", pinyin: "réncái", english: "talented person" },
-            { chinese: "人工", pinyin: "réngōng", english: "artificial" },
-            { chinese: "人类", pinyin: "rénlèi", english: "Human beings" },
-            { chinese: "人民", pinyin: "rén mín", english: "people" },
-            { chinese: "人民币", pinyin: "rénmínbì", english: "RMB" },
-            { chinese: "人群", pinyin: "rén qún", english: "crowd; throng" },
-            { chinese: "人生", pinyin: "rénshēng", english: "Life" },
-            { chinese: "人员", pinyin: "rényuán", english: "personnel" },
-            { chinese: "认出", pinyin: "rèn chū", english: "recognize; identify; make out" },
-            { chinese: "认得", pinyin: "rèn dé", english: "know; recognize" },
-            { chinese: "认可", pinyin: "rènkě", english: "certificate; ratify" },
-            { chinese: "任（动）", pinyin: "rèn", english: "appoint; assign" },
-            { chinese: "任（连）", pinyin: "rèn", english: "no matter (how, what, etc.)" },
-            { chinese: "任何", pinyin: "rènhé", english: "whatever, any" },
-            { chinese: "任务", pinyin: "rènwu", english: "task" },
-            { chinese: "仍", pinyin: "réng", english: "still; remain; yet" },
-            { chinese: "仍然", pinyin: "réngrán", english: "still" },
-            { chinese: "日常", pinyin: "rìcháng", english: "daily" },
-            { chinese: "容易", pinyin: "róngyì", english: "easily" },
-            { chinese: "如何", pinyin: "rúhé", english: "How" },
-            { chinese: "散步", pinyin: "sànbù", english: "Take a walk" },
-            { chinese: "沙发", pinyin: "shāfā", english: "Sofa" },
-            { chinese: "沙子", pinyin: "shā zi", english: "sand; grit" },
-            { chinese: "伤", pinyin: "shāng", english: "hurt; be harmful; be distressed; get sick of" },
-            { chinese: "伤心", pinyin: "shāngxīn", english: "Sad" },
-            { chinese: "商品", pinyin: "shāngpǐn", english: "commodity" },
-            { chinese: "商业", pinyin: "shāngyè", english: "business" },
-            { chinese: "上来", pinyin: "shàng lái", english: "come up" },
-            { chinese: "上面", pinyin: "shàng miàn", english: "above; on top of" },
-            { chinese: "上去", pinyin: "shàng qù", english: "go up" },
-            { chinese: "上升", pinyin: "shàng shēng", english: "rise; go up" },
-            { chinese: "上衣", pinyin: "shàng yī", english: "upper outer garment; jacket; coat" },
-            { chinese: "设备", pinyin: "shèbèi", english: "equipment" },
-            { chinese: "设计", pinyin: "shèjì", english: "Design" },
-            { chinese: "设立", pinyin: "shèlì", english: "Establish" },
-            { chinese: "社会", pinyin: "shèhuì", english: "Socioty" },
-            { chinese: "身份证", pinyin: "shēn fèn zhèng", english: "ID card" },
-            { chinese: "深", pinyin: "shēn", english: "deep" },
-            { chinese: "深刻", pinyin: "shēnkè", english: "profound" },
-            { chinese: "深入", pinyin: "shēn rù", english: "go deep into; thorough" },
-            { chinese: "升", pinyin: "shēng", english: "rise" },
-            { chinese: "生（形）", pinyin: "shēng", english: "unripe; green; living; raw; unfamiliar" },
-            { chinese: "生产", pinyin: "shēngchǎn", english: "production" },
-            { chinese: "生存", pinyin: "shēngcún", english: "Existence" },
-            { chinese: "生动", pinyin: "shēngdòng", english: "vivid" },
-            { chinese: "生命", pinyin: "shēngmìng", english: "life" },
-            { chinese: "生意", pinyin: "shēngyi", english: "business" },
-            { chinese: "生长", pinyin: "shēngzhǎng", english: "grow" },
-            { chinese: "声明", pinyin: "shēngmíng", english: "statement" },
-            { chinese: "胜", pinyin: "shèng", english: "win; defeat; beat; can bear; be superior" },
-            { chinese: "胜利", pinyin: "shènglì", english: "victory" },
-            { chinese: "失去", pinyin: "shīqù", english: "Lose" },
-            { chinese: "石头", pinyin: "shítou", english: "stone" },
-            { chinese: "石油", pinyin: "shíyóu", english: "petroleum" },
-            { chinese: "时", pinyin: "shí", english: "time; times; hour; season; tense" },
-            { chinese: "时代", pinyin: "shídài", english: "times" },
-            { chinese: "时刻", pinyin: "shíkè", english: "time" },
-            { chinese: "实际上", pinyin: "shí jì shàng", english: "actually" },
-            { chinese: "实力", pinyin: "shílì", english: "Strength" },
-            { chinese: "实行", pinyin: "shíxíng", english: "Implement" },
-            { chinese: "实验", pinyin: "shíyàn", english: "Experiment" },
-            { chinese: "实验室", pinyin: "shí yàn shì", english: "laboratory" },
-            { chinese: "食品", pinyin: "shí pǐn", english: "food; foodstuff" },
-            { chinese: "使", pinyin: "shǐ", english: "make" },
-            { chinese: "始终", pinyin: "shǐzhōng", english: "Throughout" },
-            { chinese: "世纪", pinyin: "shìjì", english: "century" },
-            { chinese: "世界", pinyin: "shìjiè", english: "world" },
-            { chinese: "世界杯", pinyin: "shì jiè bēi", english: "World Cup" },
-            { chinese: "市场", pinyin: "shìchǎng", english: "market" },
-            { chinese: "事故", pinyin: "shìgù", english: "Accident" },
-            { chinese: "事件", pinyin: "shìjiàn", english: "Event" },
-            { chinese: "事实", pinyin: "shìshí", english: "Fact" },
-            { chinese: "事实上", pinyin: "shì shí shàng", english: "in fact; actually" },
-            { chinese: "事业", pinyin: "shìyè", english: "career" },
-            { chinese: "试题", pinyin: "shì tí", english: "test questions" },
-            { chinese: "试验", pinyin: "shìyàn", english: "test" },
-            { chinese: "适合", pinyin: "shìhé", english: "Fit" },
-            { chinese: "适应", pinyin: "shìyìng", english: "Adapt" },
-            { chinese: "适用", pinyin: "shì yòng", english: "be applicable; be suitable" },
-            { chinese: "室", pinyin: "shì", english: "room" },
-            { chinese: "收费", pinyin: "shōu fèi", english: "collect fees; charge" },
-            { chinese: "收看", pinyin: "shōu kàn", english: "watch" },
-            { chinese: "收听", pinyin: "shōu tīng", english: "listen to; listen in" },
-            { chinese: "收音机", pinyin: "shōuyīnjī", english: "radio" },
-            { chinese: "手续", pinyin: "shǒuxù", english: "procedures" },
-            { chinese: "手指", pinyin: "shǒuzhǐ", english: "finger" },
-            { chinese: "首都", pinyin: "shǒudū", english: "capital" },
-            { chinese: "首先", pinyin: "shǒuxiān", english: "First" },
-            { chinese: "受", pinyin: "shòu", english: "be subjecte; suffer; receive; accept; stand" },
-            { chinese: "受伤", pinyin: "shòushāng", english: "Injured" },
-            { chinese: "书架", pinyin: "shūjià", english: "bookshelf" },
-            { chinese: "输", pinyin: "shū", english: "lose" },
-            { chinese: "输入", pinyin: "shūrù", english: "import; input" },
-            { chinese: "熟人", pinyin: "shú rén", english: "acquaintance" },
-            { chinese: "属", pinyin: "shǔ", english: "be born in the year of (one of the twelve animals); belong" },
-            { chinese: "属于", pinyin: "shǔyú", english: "belong to" },
-            { chinese: "束", pinyin: "shù", english: "beam" },
-            { chinese: "数量", pinyin: "shùliàng", english: "quantity" },
-            { chinese: "双", pinyin: "shuāng", english: "double" },
-            { chinese: "双方", pinyin: "shuāngfāng", english: "both sides" },
-            { chinese: "思想", pinyin: "sīxiǎng", english: "thought" },
-            { chinese: "死", pinyin: "sǐ", english: "die" },
-            { chinese: "速度", pinyin: "sùdù", english: "speed" },
-            { chinese: "随", pinyin: "suí", english: "follow; comply with; adapt" },
-            { chinese: "所（名、量）", pinyin: "suǒ", english: "place; office; spot; (measure word)" },
-            { chinese: "所长", pinyin: "suǒ zhǎng", english: "superintendent" },
-            { chinese: "台", pinyin: "tái", english: "platform" },
-            { chinese: "谈", pinyin: "tán", english: "talk" },
-            { chinese: "谈话", pinyin: "tán huà", english: "conversation; talk; chat" },
-            { chinese: "谈判", pinyin: "tánpàn", english: "negotiation" },
-            { chinese: "汤", pinyin: "tāng", english: "soup" },
-            { chinese: "糖", pinyin: "táng", english: "sugar" },
-            { chinese: "特色", pinyin: "tèsè", english: "characteristic" },
-            { chinese: "提前", pinyin: "tíqián", english: "Advance" },
-            { chinese: "提问", pinyin: "tíwèn", english: "Put questions to" },
-            { chinese: "题目", pinyin: "tímù", english: "subject" },
-            { chinese: "体会", pinyin: "tǐhuì", english: "Experience" },
-            { chinese: "体现", pinyin: "tǐxiàn", english: "Reflect" },
-            { chinese: "体验", pinyin: "tǐyàn", english: "experience; taste" },
-            { chinese: "天空", pinyin: "tiānkōng", english: "sky" },
-            { chinese: "甜", pinyin: "tián", english: "sweet" },
-            { chinese: "调", pinyin: "tiáo", english: "suit well; mix; adjust; fit in perfectly" },
-            { chinese: "调整", pinyin: "tiáozhěng", english: "adjustment" },
-            { chinese: "跳", pinyin: "tiào", english: "jump; leap; skip; bounce" },
-            { chinese: "跳高", pinyin: "tiào gāo", english: "high jump" },
-            { chinese: "跳舞", pinyin: "tiàowǔ", english: "dance" },
-            { chinese: "跳远", pinyin: "tiào yuǎn", english: "long jump; broad jump" },
-            { chinese: "铁", pinyin: "tiě", english: "iron" },
-            { chinese: "铁路", pinyin: "tiě lù", english: "railway; railroad" },
-            { chinese: "听力", pinyin: "tīng lì", english: "hearing; aural comprehension" },
-            { chinese: "听众", pinyin: "tīng zhòng", english: "audience; listeners" },
-            { chinese: "停止", pinyin: "tíng zhǐ", english: "stop; cease; suspend; call off; halt" },
-            { chinese: "通常", pinyin: "tōngcháng", english: "usually" },
-            { chinese: "通信", pinyin: "tōng xìn", english: "communicate; correspond" },
-            { chinese: "同意", pinyin: "tóngyì", english: "Agree" },
-            { chinese: "痛（形）", pinyin: "tòng", english: "sore; painful; sad" },
-            { chinese: "痛苦", pinyin: "tòngkǔ", english: "Pain" },
-            { chinese: "头（形）", pinyin: "tóu", english: "lead; head" },
-            { chinese: "头脑", pinyin: "tóu nǎo", english: "mind; brain" },
-            { chinese: "突出", pinyin: "tūchū", english: "prominent" },
-            { chinese: "突然", pinyin: "tūrán", english: "suddenly" },
-            { chinese: "图", pinyin: "tú", english: "picture; chart; drawing; scheme; intention" },
-            { chinese: "图画", pinyin: "tú huà", english: "drawing; picture; painting" },
-            { chinese: "土（名）", pinyin: "tǔ", english: "soil; earth; land; ground" },
-            { chinese: "团", pinyin: "tuán", english: "group" },
-            { chinese: "团结", pinyin: "tuánjié", english: "Unite" },
-            { chinese: "团体", pinyin: "tuántǐ", english: "group" },
-            { chinese: "推动", pinyin: "tuī dòng", english: "promote; push forward; give impetus to" },
-            { chinese: "推广", pinyin: "tuīguǎng", english: "Extension" },
-            { chinese: "推进", pinyin: "tuī jìn", english: "advance; carry forward; push on; give impetus to" },
-            { chinese: "推开", pinyin: "tuī kāi", english: "push away" },
-            { chinese: "退", pinyin: "tuì", english: "retreat" },
-            { chinese: "退出", pinyin: "tuì chū", english: "drop out; quit; withdraw" },
-            { chinese: "退休", pinyin: "tuìxiū", english: "retire" },
-            { chinese: "外交", pinyin: "wàijiāo", english: "diplomacy" },
-            { chinese: "外面", pinyin: "wài miàn", english: "outside; outdoors; outward appearance" },
-            { chinese: "外文", pinyin: "wài wén", english: "foreign language" },
-            { chinese: "完美", pinyin: "wánměi", english: "perfect" },
-            { chinese: "完善", pinyin: "wánshàn", english: "perfect, consummate" },
-            { chinese: "完整", pinyin: "wánzhěng", english: "complete" },
-            { chinese: "玩具", pinyin: "wánjù", english: "Toys" },
-            { chinese: "往往", pinyin: "wǎngwǎng", english: "Often" },
-            { chinese: "危害", pinyin: "wēihài", english: "Harm" },
-            { chinese: "危险", pinyin: "wēixiǎn", english: "danger" },
-            { chinese: "为（动）", pinyin: "wéi", english: "act as; become; be; mean" },
-            { chinese: "为（介）", pinyin: "wèi", english: "(preposition)" },
-            { chinese: "围", pinyin: "wéi", english: "enclose; surround; circle" },
-            { chinese: "伟大", pinyin: "wěidà", english: "great" },
-            { chinese: "卫生", pinyin: "wèi shēng", english: "hygiene; health; sanitation" },
-            { chinese: "卫生间", pinyin: "wèishēngjiān", english: "toilet" },
-            { chinese: "为了", pinyin: "wèile", english: "in order to" },
-            { chinese: "温暖", pinyin: "wēnnuǎn", english: "warm" },
-            { chinese: "文化", pinyin: "wénhuà", english: "Culture" },
-            { chinese: "文件", pinyin: "wénjiàn", english: "file" },
-            { chinese: "文明", pinyin: "wénmíng", english: "civilization" },
-            { chinese: "文学", pinyin: "wénxué", english: "literature" },
-            { chinese: "文章", pinyin: "wénzhāng", english: "Article" },
-            { chinese: "文字", pinyin: "wénzì", english: "writing, character" },
-            { chinese: "握手", pinyin: "wòshǒu", english: "Handshake" },
-            { chinese: "屋子", pinyin: "wūzi", english: "House" },
-            { chinese: "武器", pinyin: "wǔqì", english: "arms" },
-            { chinese: "武术", pinyin: "wǔshù", english: "A martial art" },
-            { chinese: "舞台", pinyin: "wǔ tái", english: "stage; arena" },
-            { chinese: "西部", pinyin: "xī bù", english: "west" },
-            { chinese: "希望", pinyin: "xīwàng", english: "hope" },
-            { chinese: "系", pinyin: "xì", english: "department" },
-            { chinese: "下来", pinyin: "xià lái", english: "come down; get down" },
-            { chinese: "下面", pinyin: "xià miàn", english: "below; under; next" },
-            { chinese: "下去", pinyin: "xià qù", english: "go down; descend; go on; continue" },
-            { chinese: "先进", pinyin: "xiānjìn", english: "advanced" },
-            { chinese: "显得", pinyin: "xiǎnde", english: "Appear" },
-            { chinese: "显然", pinyin: "xiǎnrán", english: "Obviously" },
-            { chinese: "显示", pinyin: "xiǎnshì", english: "display" },
-            { chinese: "现场", pinyin: "xiànchǎng", english: "scene" },
-            { chinese: "现代", pinyin: "xiàndài", english: "modern" },
-            { chinese: "现金", pinyin: "xiànjīn", english: "cash" },
-            { chinese: "现实", pinyin: "xiànshí", english: "reality" },
-            { chinese: "现象", pinyin: "xiànxiàng", english: "phenomenon" },
-            { chinese: "线", pinyin: "xiàn", english: "thread; string; wire; line; route" },
-            { chinese: "相比", pinyin: "xiāng bǐ", english: "compare; compare to" },
-            { chinese: "相当", pinyin: "xiāngdāng", english: "Quite" },
-            { chinese: "相关", pinyin: "xiāngguān", english: "correlate" },
-            { chinese: "相互", pinyin: "xiāng hù", english: "mutual; reciprocal; each other" },
-            { chinese: "相似", pinyin: "xiāngsì", english: "Be similar" },
-            { chinese: "香", pinyin: "xiāng", english: "fragrant" },
-            { chinese: "香蕉", pinyin: "xiāngjiāo", english: "Banana" },
-            { chinese: "消费", pinyin: "xiāofèi", english: "consumption" },
-            { chinese: "消失", pinyin: "xiāoshī", english: "disappear" },
-            { chinese: "消息", pinyin: "xiāoxi", english: "message" },
-            { chinese: "效果", pinyin: "xiàoguǒ", english: "Effect" },
-            { chinese: "写作", pinyin: "xiězuò", english: "writing" },
-            { chinese: "血", pinyin: "xuè", english: "blood" },
-            { chinese: "心", pinyin: "xīn", english: "heart; feeling; centre; core" },
-            { chinese: "信（动）", pinyin: "xìn", english: "believe; trust" },
-            { chinese: "信封", pinyin: "xìnfēng", english: "envelope" },
-            { chinese: "信任", pinyin: "xìnrèn", english: "trust" },
-            { chinese: "行李", pinyin: "xíng lǐ", english: "luggage; baggage" },
-            { chinese: "形成", pinyin: "xíngchéng", english: "formation" },
-            { chinese: "形式", pinyin: "xíngshì", english: "form" },
-            { chinese: "形象", pinyin: "xíngxiàng", english: "image" },
-            { chinese: "形状", pinyin: "xíngzhuàng", english: "shape" },
-            { chinese: "幸福", pinyin: "xìngfú", english: "happiness" },
-            { chinese: "幸运", pinyin: "xìngyùn", english: "Lucky" },
-            { chinese: "性（积极性）", pinyin: "xìng （jī jí xìng）", english: "as a suffix (positivity)" },
-            { chinese: "性别", pinyin: "xìngbié", english: "Gender" },
-            { chinese: "性格", pinyin: "xìnggé", english: "character" },
-            { chinese: "修", pinyin: "xiū", english: "repair; build; embellish; study" },
-            { chinese: "修改", pinyin: "xiūgǎi", english: "modify" },
-            { chinese: "需求", pinyin: "xūqiú", english: "demand" },
-            { chinese: "需要", pinyin: "xūyào", english: "Need" },
-            { chinese: "宣布", pinyin: "xuānbù", english: "Announce" },
-            { chinese: "宣传", pinyin: "xuānchuán", english: "Propaganda" },
-            { chinese: "选手", pinyin: "xuǎnshǒu", english: "Player" },
-            { chinese: "学费", pinyin: "xué fèi", english: "tuition fee; tuition; school fee" },
-            { chinese: "训练", pinyin: "xùnliàn", english: "train" },
-            { chinese: "压", pinyin: "yā", english: "press; push; keep under control; bear down" },
-            { chinese: "压力", pinyin: "yālì", english: "pressure" },
-            { chinese: "烟", pinyin: "yān", english: "smoke; tobacco; be irritated by smoke" },
-            { chinese: "眼前", pinyin: "yǎn qián", english: "now; at the moment; before one’s eyes" },
-            { chinese: "演", pinyin: "yǎn", english: "play; act; perform" },
-            { chinese: "演唱", pinyin: "yǎn chàng", english: "sing" },
-            { chinese: "演唱会", pinyin: "yǎn chàng huì", english: "concert" },
-            { chinese: "演出", pinyin: "yǎnchū", english: "show" },
-            { chinese: "演员", pinyin: "yǎnyuán", english: "performer, actor" },
-            { chinese: "羊", pinyin: "yáng", english: "sheep" },
-            { chinese: "阳光", pinyin: "yángguāng", english: "Sunshine" },
-            { chinese: "要是", pinyin: "yàoshi", english: "If" },
-            { chinese: "衣架", pinyin: "yī jià", english: "hanger; clothes stand; clothes tree" },
-            { chinese: "一切", pinyin: "yíqiè", english: "everything" },
-            { chinese: "已", pinyin: "yǐ", english: "already; afterwards" },
-            { chinese: "以来", pinyin: "yǐlái", english: "Since" },
-            { chinese: "一方面", pinyin: "yì fāng miàn", english: "on the one hand" },
-            { chinese: "艺术", pinyin: "yìshù", english: "Art" },
-            { chinese: "意外", pinyin: "yìwài", english: "Accident" },
-            { chinese: "意义", pinyin: "yìyì", english: "Significance" },
-            { chinese: "因此", pinyin: "yīncǐ", english: "therefore" },
-            { chinese: "银", pinyin: "yín", english: "silver" },
-            { chinese: "银牌", pinyin: "yín pái", english: "silver medal" },
-            { chinese: "印象", pinyin: "yìnxiàng", english: "impression" },
-            { chinese: "应当", pinyin: "yīng dāng", english: "should; ought to" },
-            { chinese: "迎接", pinyin: "yíngjiē", english: "meet, pick, welcome" },
-            { chinese: "营养", pinyin: "yíngyǎng", english: "Nutrition" },
-            { chinese: "赢", pinyin: "yíng", english: "win" },
-            { chinese: "影视", pinyin: "yǐng shì", english: "film and television" },
-            { chinese: "应用", pinyin: "yìngyòng", english: "application" },
-            { chinese: "优点", pinyin: "yōudiǎn", english: "Advantage" },
-            { chinese: "优势", pinyin: "yōushì", english: "advantage" },
-            { chinese: "由", pinyin: "yóu", english: "from" },
-            { chinese: "由于", pinyin: "yóuyú", english: "Because" },
-            { chinese: "邮件", pinyin: "yóu jiàn", english: "mail; post; postal matter" },
-            { chinese: "邮票", pinyin: "yóu piào", english: "postage stamp; stamp" },
-            { chinese: "邮箱", pinyin: "yóu xiāng", english: "postbox; mailbox" },
-            { chinese: "游", pinyin: "yóu", english: "swim; wander; travel; tour" },
-            { chinese: "游戏", pinyin: "yóuxì", english: "Game" },
-            { chinese: "游泳", pinyin: "yóuyǒng", english: "Swimming" },
-            { chinese: "有的是", pinyin: "yǒu de shì", english: "have plenty of; there’s no lack of" },
-            { chinese: "有利", pinyin: "yǒulì", english: "favourable; beneficial" },
-            { chinese: "有效", pinyin: "yǒu xiào", english: "effective; valid" },
-            { chinese: "预报", pinyin: "yùbào", english: "prediction" },
-            { chinese: "预防", pinyin: "yùfáng", english: "Prevention" },
-            { chinese: "预计", pinyin: "yù jì", english: "expected; estimate" },
-            { chinese: "预习", pinyin: "yùxí", english: "Preview" },
-            { chinese: "员（服务员）", pinyin: "yuán （fú wù yuán）", english: "a person engaged in some field of activity (waiter; waitress; server)" },
-            { chinese: "员工", pinyin: "yuángōng", english: "employee" },
-            { chinese: "愿望", pinyin: "yuànwàng", english: "desire" },
-            { chinese: "约", pinyin: "yuē", english: "appointment; agreement; arrange; restrict" },
-            { chinese: "乐队", pinyin: "yuè duì", english: "orchestra; band" },
-            { chinese: "运输", pinyin: "yùnshū", english: "transport" },
-            { chinese: "杂志", pinyin: "zázhì", english: "Magazine" },
-            { chinese: "早已", pinyin: "zǎo yǐ", english: "long ago; for a long time" },
-            { chinese: "造", pinyin: "zào", english: "make; build; create; produce" },
-            { chinese: "造成", pinyin: "zàochéng", english: "cause" },
-            { chinese: "责任", pinyin: "zérèn", english: "responsibility" },
-            { chinese: "增加", pinyin: "zēngjiā", english: "increase" },
-            { chinese: "增长", pinyin: "zēng zhǎng", english: "increase; grow" },
-            { chinese: "展开", pinyin: "zhǎnkāi", english: "Open" },
-            { chinese: "张", pinyin: "zhāng", english: "Zhang" },
-            { chinese: "照", pinyin: "zhào", english: "reflect" },
-            { chinese: "者（志愿者）", pinyin: "zhě （zhì yuàn zhě）", english: "suffix (volunteer)" },
-            { chinese: "真实", pinyin: "zhēnshí", english: "real" },
-            { chinese: "争", pinyin: "zhēng", english: "contend; dispute; fight; strive; vie" },
-            { chinese: "争取", pinyin: "zhēngqǔ", english: "strive for" },
-            { chinese: "整", pinyin: "zhěng", english: "whole; all; entire; complete" },
-            { chinese: "整个", pinyin: "zhěnggè", english: "Whole" },
-            { chinese: "整理", pinyin: "zhěnglǐ", english: "Arrangement" },
-            { chinese: "整齐", pinyin: "zhěngqí", english: "neat" },
-            { chinese: "整体", pinyin: "zhěngtǐ", english: "Whole" },
-            { chinese: "整天", pinyin: "zhěng tiān", english: "all day long" },
-            { chinese: "整整", pinyin: "zhěng zhěng", english: "whole; full" },
-            { chinese: "正（形）", pinyin: "zhèng", english: "straight; upright; positive; correct; main" },
-            { chinese: "正式", pinyin: "zhèngshì", english: "formal" },
-            { chinese: "证", pinyin: "zhèng", english: "certificate; proof" },
-            { chinese: "证件", pinyin: "zhèngjiàn", english: "Certificates" },
-            { chinese: "证据", pinyin: "zhèngjù", english: "evidence" },
-            { chinese: "证明", pinyin: "zhèngmíng", english: "Prove" },
-            { chinese: "支（量）", pinyin: "zhī", english: "(measure word)" },
-            { chinese: "支持", pinyin: "zhīchí", english: "Support" },
-            { chinese: "支付", pinyin: "zhī fù", english: "pay money; defray" },
-            { chinese: "只", pinyin: "zhī", english: "single; lonely" },
-            { chinese: "直", pinyin: "zhí", english: "straight" },
-            { chinese: "直播", pinyin: "zhíbō", english: "on live" },
-            { chinese: "直到", pinyin: "zhí dào", english: "until" },
-            { chinese: "值", pinyin: "zhí", english: "value; be worth" },
-            { chinese: "值得", pinyin: "zhíde", english: "Worth" },
-            { chinese: "职工", pinyin: "zhí gōng", english: "staff; worker" },
-            { chinese: "职业", pinyin: "zhíyè", english: "Occupation" },
-            { chinese: "只好", pinyin: "zhǐhǎo", english: "have to" },
-            { chinese: "只是", pinyin: "zhǐ shì", english: "merely; only; just" },
-            { chinese: "只有", pinyin: "zhǐ yǒu", english: "only" },
-            { chinese: "指", pinyin: "zhǐ", english: "finger" },
-            { chinese: "指出", pinyin: "zhǐ chū", english: "point out; indicate" },
-            { chinese: "指导", pinyin: "zhǐdǎo", english: "guidance" },
-            { chinese: "至今", pinyin: "zhìjīn", english: "so far" },
-            { chinese: "至少", pinyin: "zhìshǎo", english: "at least" },
-            { chinese: "志愿", pinyin: "zhì yuàn", english: "volunteer; aspiration; wish" },
-            { chinese: "志愿者", pinyin: "zhìyuànzhě", english: "Volunteer" },
-            { chinese: "制定", pinyin: "zhìdìng", english: "Formulate" },
-            { chinese: "制度", pinyin: "zhìdù", english: "system" },
-            { chinese: "制造", pinyin: "zhìzào", english: "Manufacture" },
-            { chinese: "制作", pinyin: "zhìzuò", english: "Make" },
-            { chinese: "中部", pinyin: "zhōng bù", english: "central section; middle part" },
-            { chinese: "中华民族", pinyin: "zhōng huá mín zú", english: "Chinese nation" },
-            { chinese: "终于", pinyin: "zhōngyú", english: "finally" },
-            { chinese: "钟", pinyin: "zhōng", english: "bell; clock; call bell; time" },
-            { chinese: "种", pinyin: "zhǒng", english: "species" },
-            { chinese: "种子", pinyin: "zhǒngzi", english: "seed" },
-            { chinese: "重大", pinyin: "zhòngdà", english: "significant" },
-            { chinese: "周围", pinyin: "zhōuwéi", english: "around" },
-            { chinese: "猪", pinyin: "zhū", english: "pig" },
-            { chinese: "主持", pinyin: "zhǔchí", english: "Host" },
-            { chinese: "主动", pinyin: "zhǔdòng", english: "active" },
-            { chinese: "主任", pinyin: "zhǔrèn", english: "Headmaster" },
-            { chinese: "主意", pinyin: "zhǔyi", english: "idea" },
-            { chinese: "主张", pinyin: "zhǔzhāng", english: "opinion" },
-            { chinese: "注意", pinyin: "zhùyì", english: "Be careful" },
-            { chinese: "祝", pinyin: "zhù", english: "express good wishes; wish" },
-            { chinese: "抓", pinyin: "zhuā", english: "grab" },
-            { chinese: "抓住", pinyin: "zhuā zhù", english: "catch; catch hold of; grip; capture" },
-            { chinese: "专家", pinyin: "zhuānjiā", english: "expert" },
-            { chinese: "专门", pinyin: "zhuānmén", english: "specialized" },
-            { chinese: "专题", pinyin: "zhuāntí", english: "special collection" },
-            { chinese: "专业", pinyin: "zhuānyè", english: "major" },
-            { chinese: "转", pinyin: "zhuàn", english: "turn" },
-            { chinese: "转变", pinyin: "zhuǎnbiàn", english: "change" },
-            { chinese: "状况", pinyin: "zhuàngkuàng", english: "status" },
-            { chinese: "状态", pinyin: "zhuàngtài", english: "state" },
-            { chinese: "追", pinyin: "zhuī", english: "run after" },
-            { chinese: "准", pinyin: "zhǔn", english: "follow; permit; allow; standard" },
-            { chinese: "资格", pinyin: "zīgé", english: "Qualifications" },
-            { chinese: "资金", pinyin: "zījīn", english: "capital" },
-            { chinese: "子女", pinyin: "zǐ nǚ", english: "child; sons and daughters" },
-            { chinese: "自从", pinyin: "zìcóng", english: "Since" },
-            { chinese: "自动", pinyin: "zìdòng", english: "automatic" },
-            { chinese: "自觉", pinyin: "zìjué", english: "Conscious" },
-            { chinese: "自然", pinyin: "zìrán", english: "natural" },
-            { chinese: "自身", pinyin: "zì shēn", english: "oneself; self" },
-            { chinese: "自主", pinyin: "zìzhǔ", english: "Autonomy" },
-            { chinese: "总", pinyin: "zǒng", english: "always; consistently" },
-            { chinese: "总结", pinyin: "zǒngjié", english: "summary" },
-            { chinese: "总是", pinyin: "zǒngshì", english: "always" },
-            { chinese: "足够", pinyin: "zú gòu", english: "enough; ample; sufficient" },
-            { chinese: "足球", pinyin: "zú qiú", english: "soccer; football" },
-            { chinese: "组合", pinyin: "zǔhé", english: "combination" },
-            { chinese: "左右", pinyin: "zuǒyòu", english: "About" },
-            { chinese: "作品", pinyin: "zuòpǐn", english: "works" },
-            { chinese: "作者", pinyin: "zuòzhě", english: "author" },
-            { chinese: "做客", pinyin: "zuò kè", english: "be a guest" }
+        // Global variables
+        let originalWords = [];
+        let currentBatch = 0;
+        let batchSize = 50;
+        let currentBatchWords = [];
+        let currentIndex = 0;
+        let correctAnswers = 0;
+        let wrongAnswers = [];
+        let totalAnswered = 0;
+        let isPinyinMode = true;
+        let selectedOption = null;
+        let isReviewMode = false;
+        let reviewWords = [];
+        let completedBatches = [];
+        let batchPerformance = {};
 
+        // DOM elements
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const currentQuestionEl = document.getElementById('current-question');
+        const correctCountEl = document.getElementById('correct-count');
+        const wrongCountEl = document.getElementById('wrong-count');
+        const accuracyEl = document.getElementById('accuracy');
+        const progressBar = document.getElementById('progress-bar');
+        const feedbackEl = document.getElementById('feedback');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const loadingScreen = document.getElementById('loading-screen');
+        const errorMessage = document.getElementById('error-message');
+        const mainContainer = document.getElementById('main-container');
+        const reviewSection = document.getElementById('review-section');
+        const reviewList = document.getElementById('review-list');
+        const reviewWrongBtn = document.getElementById('review-wrong-btn');
+        const closeReviewBtn = document.getElementById('close-review-btn');
+        const practiceReviewBtn = document.getElementById('practice-review-btn');
+        const completionScreen = document.getElementById('completion-screen');
+        const completionTotal = document.getElementById('completion-total');
+        const completionCorrect = document.getElementById('completion-correct');
+        const completionWrong = document.getElementById('completion-wrong');
+        const completionAccuracy = document.getElementById('completion-accuracy');
+        const completionReviewBtn = document.getElementById('completion-review-btn');
+        const completionNextBatchBtn = document.getElementById('completion-next-batch-btn');
+        const prevBatchBtn = document.getElementById('prev-batch-btn');
+        const nextBatchBtn = document.getElementById('next-batch-btn');
+        const batchInfo = document.getElementById('batch-info');
+        const progressOverview = document.getElementById('progress-overview');
+        const progressOverviewBtn = document.getElementById('progress-overview-btn');
+        const closeProgressBtn = document.getElementById('close-progress-btn');
+        const batchProgress = document.getElementById('batch-progress');
 
-        ];
+        // Load vocabulary from JSON file
+        async function loadVocabulary() {
+            try {
+                // For demo purposes, we'll create sample data if vocabulary.json doesn't exist
+                // In a real scenario, you would fetch from an actual file
+                const sampleData = {
+                    words: [],
+                    level: "3",
+                    description: "HSK Level 3 Vocabulary"
+                };
+
+                // Generate sample words
+                const sampleWords = [
+                    {chinese: "你好", pinyin: "nǐ hǎo", english: "hello"},
+                    {chinese: "谢谢", pinyin: "xiè xie", english: "thank you"},
+                    {chinese: "再见", pinyin: "zài jiàn", english: "goodbye"},
+                    {chinese: "请", pinyin: "qǐng", english: "please"},
+                    {chinese: "对不起", pinyin: "duì bu qǐ", english: "sorry"},
+                    {chinese: "是", pinyin: "shì", english: "yes"},
+                    {chinese: "不", pinyin: "bù", english: "no"},
+                    {chinese: "人", pinyin: "rén", english: "person"},
+                    {chinese: "中国", pinyin: "Zhōng guó", english: "China"},
+                    {chinese: "美国", pinyin: "Měi guó", english: "USA"},
+                    {chinese: "老师", pinyin: "lǎo shī", english: "teacher"},
+                    {chinese: "学生", pinyin: "xué sheng", english: "student"},
+                    {chinese: "学校", pinyin: "xué xiào", english: "school"},
+                    {chinese: "工作", pinyin: "gōng zuò", english: "work"},
+                    {chinese: "公司", pinyin: "gōng sī", english: "company"},
+                    {chinese: "电脑", pinyin: "diàn nǎo", english: "computer"},
+                    {chinese: "手机", pinyin: "shǒu jī", english: "mobile phone"},
+                    {chinese: "书", pinyin: "shū", english: "book"},
+                    {chinese: "笔", pinyin: "bǐ", english: "pen"},
+                    {chinese: "水", pinyin: "shuǐ", english: "water"},
+                    {chinese: "咖啡", pinyin: "kā fēi", english: "coffee"},
+                    {chinese: "茶", pinyin: "chá", english: "tea"},
+                    {chinese: "饭", pinyin: "fàn", english: "meal"},
+                    {chinese: "水果", pinyin: "shuǐ guǒ", english: "fruit"},
+                    {chinese: "苹果", pinyin: "píng guǒ", english: "apple"},
+                    {chinese: "朋友", pinyin: "péng you", english: "friend"},
+                    {chinese: "家庭", pinyin: "jiā tíng", english: "family"},
+                    {chinese: "爸爸", pinyin: "bà ba", english: "father"},
+                    {chinese: "妈妈", pinyin: "mā ma", english: "mother"},
+                    {chinese: "哥哥", pinyin: "gē ge", english: "older brother"},
+                    {chinese: "弟弟", pinyin: "dì di", english: "younger brother"},
+                    {chinese: "姐姐", pinyin: "jiě jie", english: "older sister"},
+                    {chinese: "妹妹", pinyin: "mèi mei", english: "younger sister"},
+                    {chinese: "时间", pinyin: "shí jiān", english: "time"},
+                    {chinese: "今天", pinyin: "jīn tiān", english: "today"},
+                    {chinese: "明天", pinyin: "míng tiān", english: "tomorrow"},
+                    {chinese: "昨天", pinyin: "zuó tiān", english: "yesterday"},
+                    {chinese: "现在", pinyin: "xiàn zài", english: "now"},
+                    {chinese: "以后", pinyin: "yǐ hòu", english: "after"},
+                    {chinese: "以前", pinyin: "yǐ qián", english: "before"},
+                    {chinese: "喜欢", pinyin: "xǐ huān", english: "to like"},
+                    {chinese: "爱", pinyin: "ài", english: "to love"},
+                    {chinese: "看", pinyin: "kàn", english: "to look"},
+                    {chinese: "见", pinyin: "jiàn", english: "to see"},
+                    {chinese: "听", pinyin: "tīng", english: "to listen"},
+                    {chinese: "说", pinyin: "shuō", english: "to speak"},
+                    {chinese: "读", pinyin: "dú", english: "to read"},
+                    {chinese: "写", pinyin: "xiě", english: "to write"},
+                    {chinese: "学习", pinyin: "xué xí", english: "to study"},
+                    {chinese: "工作", pinyin: "gōng zuò", english: "to work"},
+                    {chinese: "吃", pinyin: "chī", english: "to eat"},
+                    {chinese: "喝", pinyin: "hē", english: "to drink"},
+                    {chinese: "去", pinyin: "qù", english: "to go"},
+                    {chinese: "来", pinyin: "lái", english: "to come"},
+                    {chinese: "回", pinyin: "huí", english: "to return"},
+                    {chinese: "买", pinyin: "mǎi", english: "to buy"},
+                    {chinese: "卖", pinyin: "mài", english: "to sell"},
+                    {chinese: "做", pinyin: "zuò", english: "to do"},
+                    {chinese: "坐", pinyin: "zuò", english: "to sit"},
+                    {chinese: "站", pinyin: "zhàn", english: "to stand"},
+                    {chinese: "走", pinyin: "zǒu", english: "to walk"},
+                    {chinese: "跑", pinyin: "pǎo", english: "to run"},
+                    {chinese: "大", pinyin: "dà", english: "big"},
+                    {chinese: "小", pinyin: "xiǎo", english: "small"},
+                    {chinese: "多", pinyin: "duō", english: "many"},
+                    {chinese: "少", pinyin: "shǎo", english: "few"},
+                    {chinese: "好", pinyin: "hǎo", english: "good"},
+                    {chinese: "坏", pinyin: "huài", english: "bad"},
+                    {chinese: "新", pinyin: "xīn", english: "new"},
+                    {chinese: "旧", pinyin: "jiù", english: "old"},
+                    {chinese: "热", pinyin: "rè", english: "hot"},
+                    {chinese: "冷", pinyin: "lěng", english: "cold"},
+                    {chinese: "快", pinyin: "kuài", english: "fast"},
+                    {chinese: "慢", pinyin: "màn", english: "slow"},
+                    {chinese: "高", pinyin: "gāo", english: "tall"},
+                    {chinese: "矮", pinyin: "ǎi", english: "short"},
+                    {chinese: "长", pinyin: "cháng", english: "long"},
+                    {chinese: "短", pinyin: "duǎn", english: "short"},
+                    {chinese: "红", pinyin: "hóng", english: "red"},
+                    {chinese: "蓝", pinyin: "lán", english: "blue"},
+                    {chinese: "绿", pinyin: "lǜ", english: "green"},
+                    {chinese: "黄", pinyin: "huáng", english: "yellow"},
+                    {chinese: "白", pinyin: "bái", english: "white"},
+                    {chinese: "黑", pinyin: "hēi", english: "black"},
+                    {chinese: "一", pinyin: "yī", english: "one"},
+                    {chinese: "二", pinyin: "èr", english: "two"},
+                    {chinese: "三", pinyin: "sān", english: "three"},
+                    {chinese: "四", pinyin: "sì", english: "four"},
+                    {chinese: "五", pinyin: "wǔ", english: "five"},
+                    {chinese: "六", pinyin: "liù", english: "six"},
+                    {chinese: "七", pinyin: "qī", english: "seven"},
+                    {chinese: "八", pinyin: "bā", english: "eight"},
+                    {chinese: "九", pinyin: "jiǔ", english: "nine"},
+                    {chinese: "十", pinyin: "shí", english: "ten"}
+                ];
+
+                sampleData.words = sampleWords;
+
+                // Use sample data
+                const data = sampleData;
+
+                // Validate the data structure
+                if (!Array.isArray(data.words)) {
+                    throw new Error('Invalid data structure: expected array of words');
+                }
+
+                // Validate each word entry
+                data.words.forEach((word, index) => {
+                    if (!word.chinese || !word.pinyin || !word.english) {
+                        throw new Error(`Invalid word entry at index ${index}: missing required fields`);
+                    }
+                });
+
+                originalWords = data.words;
+
+                // Process the word list to interleave two alphabetical lists
+                arrangeWords();
+
+                // Update title with level info if provided
+                if (data.level) {
+                    document.querySelector('.title').textContent = `HSK ${data.level} Quiz`;
+                    document.querySelector('.subtitle').textContent = `${data.description || 'Match Chinese characters to pinyin and English translations'}`;
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Failed to load vocabulary:', error);
+                showError(`Failed to load vocabulary: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            loadingScreen.style.display = 'none';
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Hide loading screen and show main content
+        function showMainContent() {
+            loadingScreen.style.display = 'none';
+            mainContainer.style.display = 'block';
+        }
 
         // Process the word list to interleave two alphabetical lists
-        (function arrangeWords() {
+        function arrangeWords() {
             // First, sort all words alphabetically by Chinese characters
             originalWords.sort((a, b) => a.chinese.localeCompare(b.chinese));
 
@@ -2352,37 +991,11 @@
 
             // Replace the original array with our interleaved version
             originalWords = interleaved;
-        })();
-
-        // Quiz state variables
-        let currentBatch = 0;
-        let batchSize = 50;
-        let currentBatchWords = [];
-        let currentIndex = 0;
-        let correctAnswers = 0;
-        let wrongAnswers = [];
-        let totalAnswered = 0;
-        let isPinyinMode = true;
-        let selectedOption = null;
-        let isReviewMode = false;
-        let reviewWords = [];
-
-        // DOM elements
-        const questionEl = document.getElementById('question');
-        const optionsEl = document.getElementById('options');
-        const currentQuestionEl = document.getElementById('current-question');
-        const correctCountEl = document.getElementById('correct-count');
-        const wrongCountEl = document.getElementById('wrong-count');
-        const accuracyEl = document.getElementById('accuracy');
-        const progressBar = document.getElementById('progress-bar');
-        const feedbackEl = document.getElementById('feedback');
-        const batchInfoEl = document.getElementById('batch-info');
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
+        }
 
         // Theme management
         function initTheme() {
-            const savedTheme = localStorage.getItem('hsk4-theme') || 'light';
+            const savedTheme = localStorage.getItem('hsk-theme') || 'light';
             document.body.setAttribute('data-theme', savedTheme);
             updateThemeIcon(savedTheme);
         }
@@ -2391,43 +1004,16 @@
             const currentTheme = document.body.getAttribute('data-theme');
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             document.body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('hsk4-theme', newTheme);
+            localStorage.setItem('hsk-theme', newTheme);
             updateThemeIcon(newTheme);
-            showToast(`Switched to ${newTheme} theme`);
         }
 
         function updateThemeIcon(theme) {
             themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
         }
 
-        // Toast notifications
-        function showToast(message, duration = 3000) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-
-            setTimeout(() => toast.classList.add('show'), 100);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
-        }
-
-        // Initialize
-        function init() {
-            initTheme();
-            loadProgress();
-            setupEventListeners();
-            updateBatchInfo();
-            loadCurrentBatch();
-            generateQuestion();
-            updateUI();
-        }
-
         // Setup event listeners
         function setupEventListeners() {
-            // Theme toggle
             themeToggle.addEventListener('click', toggleTheme);
 
             // Batch size buttons
@@ -2439,51 +1025,25 @@
             document.getElementById('mode-pinyin').addEventListener('click', () => switchMode(true));
             document.getElementById('mode-english').addEventListener('click', () => switchMode(false));
 
-            // Navigation buttons
-            document.getElementById('prev-batch').addEventListener('click', () => changeBatch(-1));
-            document.getElementById('next-batch').addEventListener('click', () => changeBatch(1));
+            // Review buttons
+            reviewWrongBtn.addEventListener('click', showReviewSection);
+            closeReviewBtn.addEventListener('click', hideReviewSection);
+            practiceReviewBtn.addEventListener('click', startReviewSession);
 
-            // Control buttons
-            document.getElementById('review-btn').addEventListener('click', showReviewModal);
-            document.getElementById('shuffle-btn').addEventListener('click', shuffleCurrentBatch);
-            document.getElementById('reset-btn').addEventListener('click', resetProgress);
+            // Completion screen buttons
+            completionReviewBtn.addEventListener('click', showReviewSection);
+            completionNextBatchBtn.addEventListener('click', startNextBatch);
 
-            // Modal buttons
-            document.getElementById('continue-next').addEventListener('click', continueToNextBatch);
-            document.getElementById('review-wrong-modal').addEventListener('click', showReviewModal);
-            document.getElementById('restart-batch').addEventListener('click', restartCurrentBatch);
-            document.getElementById('practice-wrong').addEventListener('click', startReviewPractice);
+            // Batch navigation
+            prevBatchBtn.addEventListener('click', goToPreviousBatch);
+            nextBatchBtn.addEventListener('click', goToNextBatch);
 
-            // Close modals when clicking outside
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.style.display = 'none';
-                    }
-                });
-            });
+            // Progress overview
+            progressOverviewBtn.addEventListener('click', showProgressOverview);
+            closeProgressBtn.addEventListener('click', hideProgressOverview);
 
-            // Touch and keyboard controls
+            // Keyboard controls
             document.addEventListener('keydown', handleKeydown);
-
-            // Add touch feedback for better mobile experience
-            document.addEventListener('touchstart', function() {}, { passive: true });
-        }
-
-        // Keyboard controls
-        function handleKeydown(e) {
-            if (e.key >= '1' && e.key <= '4') {
-                const optionIndex = parseInt(e.key) - 1;
-                const options = document.querySelectorAll('.option');
-                if (options[optionIndex] && !selectedOption) {
-                    selectOption.call(options[optionIndex]);
-                }
-            } else if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                if (selectedOption) {
-                    checkAnswer();
-                }
-            }
         }
 
         // Change batch size
@@ -2495,51 +1055,10 @@
             batchSize = size === 'all' ? originalWords.length : parseInt(size);
             currentBatch = 0;
             resetCurrentBatch();
-            updateBatchInfo();
             loadCurrentBatch();
             generateQuestion();
             updateUI();
-            saveProgress();
-            showToast(`Switched to ${size} words per batch`);
-        }
-
-        // Change batch
-        function changeBatch(direction) {
-            const totalBatches = Math.ceil(originalWords.length / batchSize);
-            const newBatch = currentBatch + direction;
-
-            if (newBatch >= 0 && newBatch < totalBatches) {
-                currentBatch = newBatch;
-                resetCurrentBatch();
-                loadCurrentBatch();
-                generateQuestion();
-                updateUI();
-                saveProgress();
-            }
-        }
-
-        // Load current batch words
-        function loadCurrentBatch() {
-            const startIdx = currentBatch * batchSize;
-            const endIdx = Math.min(startIdx + batchSize, originalWords.length);
-            currentBatchWords = originalWords.slice(startIdx, endIdx);
-
-            if (!isReviewMode) {
-                shuffleArray(currentBatchWords);
-            }
-        }
-
-        // Update batch information
-        function updateBatchInfo() {
-            const totalBatches = Math.ceil(originalWords.length / batchSize);
-            const startWord = currentBatch * batchSize + 1;
-            const endWord = Math.min((currentBatch + 1) * batchSize, originalWords.length);
-
-            batchInfoEl.textContent = `Batch ${currentBatch + 1} of ${totalBatches} (${currentBatchWords.length} words)`;
-
-            // Update navigation buttons
-            document.getElementById('prev-batch').disabled = currentBatch === 0;
-            document.getElementById('next-batch').disabled = currentBatch === totalBatches - 1;
+            updateBatchNavigation();
         }
 
         // Switch between pinyin and english mode
@@ -2552,18 +1071,13 @@
 
         // Generate question and options
         function generateQuestion() {
-            const wordsToUse = isReviewMode ? reviewWords : currentBatchWords;
-
-            if (currentIndex >= wordsToUse.length) {
-                if (isReviewMode) {
-                    showReviewCompleteModal();
-                } else {
-                    showCompletionModal();
-                }
+            if (currentIndex >= currentBatchWords.length) {
+                // Batch complete
+                showCompletionScreen();
                 return;
             }
 
-            const currentWord = wordsToUse[currentIndex];
+            const currentWord = isReviewMode ? reviewWords[currentIndex] : currentBatchWords[currentIndex];
             questionEl.textContent = currentWord.chinese;
             feedbackEl.textContent = '';
             feedbackEl.className = 'feedback';
@@ -2579,88 +1093,31 @@
                 ? `${currentWord.pinyin} - ${currentWord.english}`
                 : currentWord.english;
 
-            // Create smart similar incorrect options
-            const incorrectOptions = generateSimilarOptions(currentWord, wordsToUse);
+            // Create incorrect options
+            const incorrectOptions = generateIncorrectOptions(currentWord);
 
             // Combine and shuffle options
             const allOptions = [correctOption, ...incorrectOptions];
             shuffleArray(allOptions);
 
-            // Add options to DOM with touch-friendly spacing
-            allOptions.forEach((option, index) => {
+            // Add options to DOM
+            allOptions.forEach((option) => {
                 option.addEventListener('click', selectOption);
-                option.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    selectOption.call(this);
-                });
-                option.title = `Option ${index + 1}`;
                 optionsEl.appendChild(option);
             });
 
             selectedOption = null;
-            updateBatchInfo();
-
-            // Add fade-in animation
-            questionEl.parentElement.classList.add('fade-in');
-            setTimeout(() => {
-                questionEl.parentElement.classList.remove('fade-in');
-            }, 300);
+            updateUI();
         }
 
-        // Generate similar options (simplified for mobile performance)
-        function generateSimilarOptions(correctWord, sourceWords) {
+        // Generate incorrect options
+        function generateIncorrectOptions(correctWord) {
             const incorrectOptions = [];
-            const allWords = isReviewMode ? originalWords : sourceWords;
-
-            // Calculate similarity scores for all words
-            const similarWords = allWords
-                .filter(word => word.chinese !== correctWord.chinese)
-                .map(word => ({
-                    word: word,
-                    score: calculateSimilarityScore(correctWord, word)
-                }))
-                .sort((a, b) => b.score - a.score);
-
-            // Strategy: Use most similar words, with some randomness for variety
-            const candidates = [];
-
-            // Get top 20% most similar words
-            const topSimilar = similarWords.slice(0, Math.max(10, Math.floor(similarWords.length * 0.2)));
-
-            // Add some medium similar words for variety
-            const mediumSimilar = similarWords.slice(
-                Math.floor(similarWords.length * 0.2),
-                Math.floor(similarWords.length * 0.5)
-            );
-
-            // Combine with weighted preference for more similar words
-            candidates.push(...topSimilar, ...topSimilar, ...mediumSimilar);
-
-            // Select 3 unique options
             const usedWords = new Set([correctWord.chinese]);
-            let attempts = 0;
 
-            while (incorrectOptions.length < 3 && attempts < 50) {
-                const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
-
-                if (randomCandidate && !usedWords.has(randomCandidate.word.chinese)) {
-                    usedWords.add(randomCandidate.word.chinese);
-
-                    const option = document.createElement('div');
-                    option.className = 'option';
-                    option.dataset.similarity = randomCandidate.score.toFixed(2);
-                    option.textContent = isPinyinMode
-                        ? `${randomCandidate.word.pinyin} - ${randomCandidate.word.english}`
-                        : randomCandidate.word.english;
-
-                    incorrectOptions.push(option);
-                }
-                attempts++;
-            }
-
-            // If we couldn't find enough similar options, fill with random ones
             while (incorrectOptions.length < 3) {
-                const randomWord = allWords[Math.floor(Math.random() * allWords.length)];
+                const randomWord = originalWords[Math.floor(Math.random() * originalWords.length)];
+
                 if (!usedWords.has(randomWord.chinese)) {
                     usedWords.add(randomWord.chinese);
 
@@ -2677,115 +1134,9 @@
             return incorrectOptions;
         }
 
-        // Calculate similarity score between two words (optimized)
-        function calculateSimilarityScore(word1, word2) {
-            let score = 0;
-
-            if (isPinyinMode) {
-                // Pinyin similarity analysis
-                score += calculatePinyinSimilarity(word1.pinyin, word2.pinyin) * 50;
-                score += calculateToneSimilarity(word1.pinyin, word2.pinyin) * 30;
-                score += calculateEnglishSimilarity(word1.english, word2.english) * 20;
-            } else {
-                // English similarity analysis
-                score += calculateEnglishSimilarity(word1.english, word2.english) * 60;
-                score += calculatePinyinSimilarity(word1.pinyin, word2.pinyin) * 25;
-                score += calculateChineseSimilarity(word1.chinese, word2.chinese) * 15;
-            }
-
-            return score;
-        }
-
-        // Calculate pinyin similarity (sound similarity) - simplified
-        function calculatePinyinSimilarity(pinyin1, pinyin2) {
-            if (!pinyin1 || !pinyin2) return 0;
-
-            // Simple comparison for mobile performance
-            const clean1 = pinyin1.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, '');
-            const clean2 = pinyin2.toLowerCase().replace(/[1-5àáâãäāăąèéêëēĕėęìíîïīĭįòóôõöōŏőùúûüūŭůűų]/g, '');
-
-            if (clean1 === clean2) return 1.0;
-
-            let similarity = 0;
-            if (clean1[0] === clean2[0]) similarity += 0.4;
-
-            const final1 = clean1.slice(1);
-            const final2 = clean2.slice(1);
-            if (final1 === final2) similarity += 0.6;
-            else if (final1.includes(final2) || final2.includes(final1)) similarity += 0.3;
-
-            return Math.min(similarity, 1.0);
-        }
-
-        // Calculate tone similarity - simplified
-        function calculateToneSimilarity(pinyin1, pinyin2) {
-            const getTone = (pinyin) => {
-                if (!pinyin) return 0;
-                if (/[āēīōūǖ]/.test(pinyin)) return 1;
-                if (/[áéíóúǘ]/.test(pinyin)) return 2;
-                if (/[ǎěǐǒǔǚ]/.test(pinyin)) return 3;
-                if (/[àèìòùǜ]/.test(pinyin)) return 4;
-                if (/[1-4]/.test(pinyin)) return parseInt(pinyin.match(/[1-4]/)[0]);
-                return 0;
-            };
-
-            const tone1 = getTone(pinyin1);
-            const tone2 = getTone(pinyin2);
-
-            if (tone1 === tone2) return 1.0;
-            if (Math.abs(tone1 - tone2) === 1) return 0.5;
-            return 0;
-        }
-
-        // Calculate English meaning similarity - simplified
-        function calculateEnglishSimilarity(english1, english2) {
-            if (!english1 || !english2) return 0;
-
-            const clean1 = english1.toLowerCase().trim();
-            const clean2 = english2.toLowerCase().trim();
-
-            if (clean1 === clean2) return 1.0;
-
-            const words1 = clean1.split(/\s+|[,;]/);
-            const words2 = clean2.split(/\s+|[,;]/);
-
-            let commonWords = 0;
-            let totalWords = Math.max(words1.length, words2.length);
-
-            words1.forEach(word1 => {
-                if (words2.some(word2 => word1 === word2 || word1.includes(word2) || word2.includes(word1))) {
-                    commonWords++;
-                }
-            });
-
-            return commonWords / totalWords;
-        }
-
-        // Calculate Chinese character similarity - simplified
-        function calculateChineseSimilarity(chinese1, chinese2) {
-            if (!chinese1 || !chinese2) return 0;
-
-            let similarity = 0;
-            const chars1 = chinese1.split('');
-            const chars2 = chinese2.split('');
-
-            chars1.forEach(char1 => {
-                if (chars2.includes(char1)) {
-                    similarity += 0.5;
-                }
-            });
-
-            return similarity / Math.max(chars1.length, chars2.length);
-        }
-
-        // Select an option with haptic feedback
+        // Select an option
         function selectOption() {
             if (selectedOption) return;
-
-            // Haptic feedback for mobile
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
 
             const options = document.querySelectorAll('.option');
             options.forEach(opt => opt.classList.remove('selected'));
@@ -2798,13 +1149,9 @@
             }, 300);
         }
 
-        // Check answer with enhanced feedback
+        // Check answer
         function checkAnswer() {
-            if (!selectedOption) {
-                feedbackEl.textContent = 'Please select an answer first!';
-                feedbackEl.className = 'feedback incorrect';
-                return;
-            }
+            if (!selectedOption) return;
 
             const options = document.querySelectorAll('.option');
             options.forEach(opt => {
@@ -2818,9 +1165,7 @@
                 }
             });
 
-            const wordsToUse = isReviewMode ? reviewWords : currentBatchWords;
-            const currentWord = wordsToUse[currentIndex];
-
+            const currentWord = isReviewMode ? reviewWords[currentIndex] : currentBatchWords[currentIndex];
             totalAnswered++;
 
             if (selectedOption.dataset.correct === 'true') {
@@ -2828,9 +1173,12 @@
                 feedbackEl.className = 'feedback correct';
                 correctAnswers++;
 
-                // Success haptic feedback
-                if (navigator.vibrate) {
-                    navigator.vibrate([50, 50, 100]);
+                // Remove from review words if it was there
+                if (isReviewMode) {
+                    const index = reviewWords.findIndex(w => w.chinese === currentWord.chinese);
+                    if (index > -1) {
+                        reviewWords.splice(index, 1);
+                    }
                 }
             } else {
                 const correctText = isPinyinMode
@@ -2840,39 +1188,38 @@
                 feedbackEl.innerHTML = `❌ Incorrect.<br><strong>${correctText}</strong>`;
                 feedbackEl.className = 'feedback incorrect';
 
-                // Error haptic feedback
-                if (navigator.vibrate) {
-                    navigator.vibrate([100, 50, 100, 50, 100]);
-                }
-
-                // Add to wrong answers
-                const wrongAnswer = {
+                wrongAnswers.push({
                     word: currentWord,
                     selectedAnswer: selectedOption.textContent,
-                    correctAnswer: correctText,
-                    mode: isPinyinMode ? 'pinyin' : 'english'
-                };
-                wrongAnswers.push(wrongAnswer);
+                    correctAnswer: correctText
+                });
+
+                // Add to review words if not already there
+                if (!reviewWords.some(w => w.chinese === currentWord.chinese)) {
+                    reviewWords.push(currentWord);
+                }
+
+                // Show review button if there are wrong answers
+                if (reviewWords.length > 0 && !isReviewMode) {
+                    reviewWrongBtn.style.display = 'block';
+                }
             }
 
             updateUI();
-            saveProgress();
 
             setTimeout(() => {
                 nextQuestion();
-            }, 2000); // Shorter delay for mobile
+            }, 2000);
         }
 
         // Next question
         function nextQuestion() {
             currentIndex++;
             generateQuestion();
-            updateUI();
         }
 
         // Update UI elements
         function updateUI() {
-            const wordsToUse = isReviewMode ? reviewWords : currentBatchWords;
             currentQuestionEl.textContent = currentIndex + 1;
             correctCountEl.textContent = correctAnswers;
             wrongCountEl.textContent = wrongAnswers.length;
@@ -2880,117 +1227,17 @@
             const accuracy = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
             accuracyEl.textContent = `${accuracy}%`;
 
-            const progress = Math.min(((currentIndex) / wordsToUse.length) * 100, 100);
+            const totalWords = isReviewMode ? reviewWords.length : currentBatchWords.length;
+            const progress = Math.min(((currentIndex) / totalWords) * 100, 100);
             progressBar.style.width = `${progress}%`;
         }
 
-        // Show completion modal with mobile-optimized content
-        function showCompletionModal() {
-            const accuracy = Math.round((correctAnswers / totalAnswered) * 100);
-            const grade = accuracy >= 90 ? 'Excellent!' :
-                         accuracy >= 80 ? 'Great job!' :
-                         accuracy >= 70 ? 'Good work!' :
-                         accuracy >= 60 ? 'Keep practicing!' : 'Need more study';
-
-            const modalStats = document.getElementById('modal-stats');
-            modalStats.innerHTML = `
-                <div style="text-align: center; font-size: 1.1rem; line-height: 1.6;">
-                    <p><strong>🎯 Batch ${currentBatch + 1} Complete!</strong></p>
-                    <p>✅ Correct: ${correctAnswers} | ❌ Wrong: ${wrongAnswers.length}</p>
-                    <p>📊 Accuracy: <strong>${accuracy}%</strong></p>
-                    <p>🏆 Grade: <strong style="color: var(--accent);">${grade}</strong></p>
-                </div>
-            `;
-
-            // Show/hide continue button based on available batches
-            const totalBatches = Math.ceil(originalWords.length / batchSize);
-            const continueBtn = document.getElementById('continue-next');
-            continueBtn.style.display = currentBatch < totalBatches - 1 ? 'inline-flex' : 'none';
-
-            document.getElementById('completion-modal').style.display = 'flex';
-        }
-
-        // Show review modal with compact mobile layout
-        function showReviewModal() {
-            if (wrongAnswers.length === 0) {
-                showToast('No wrong answers to review yet! 🎉');
-                return;
-            }
-
-            const reviewContent = document.getElementById('review-content');
-            reviewContent.innerHTML = `
-                <div style="margin-bottom: 16px; text-align: center;">
-                    <p><strong>📋 Review ${wrongAnswers.length} wrong answers</strong></p>
-                </div>
-                <div style="max-height: 300px; overflow-y: auto;">
-                    ${wrongAnswers.slice(0, 10).map((wa, index) => `
-                        <div class="wrong-answer">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <div class="chinese">${wa.word.chinese}</div>
-                                <small style="opacity: 0.7;">#${index + 1}</small>
-                            </div>
-                            <div style="font-size: 0.9rem; margin-bottom: 4px;"><strong>📌 ${wa.word.pinyin}</strong> - ${wa.word.english}</div>
-                            <div style="font-size: 0.85rem;">
-                                <div>❌ <span class="selected">${wa.selectedAnswer}</span></div>
-                                <div>✅ <span class="correct">${wa.mode === 'pinyin' ? `${wa.word.pinyin} - ${wa.word.english}` : wa.word.english}</span></div>
-                            </div>
-                        </div>
-                    `).join('')}
-                    ${wrongAnswers.length > 10 ? `<p style="text-align: center; margin-top: 12px;"><em>...and ${wrongAnswers.length - 10} more</em></p>` : ''}
-                </div>
-            `;
-
-            document.getElementById('review-modal').style.display = 'flex';
-        }
-
-        // Start review practice
-        function startReviewPractice() {
-            if (wrongAnswers.length === 0) return;
-
-            isReviewMode = true;
-            reviewWords = wrongAnswers.map(wa => wa.word);
-            shuffleArray(reviewWords);
-
-            currentIndex = 0;
-            correctAnswers = 0;
-            totalAnswered = 0;
-            wrongAnswers = [];
-
-            document.getElementById('review-modal').style.display = 'none';
-            document.getElementById('completion-modal').style.display = 'none';
-
-            generateQuestion();
-            updateUI();
-            showToast(`Starting review practice with ${reviewWords.length} words`);
-        }
-
-        // Show review complete modal
-        function showReviewCompleteModal() {
-            const accuracy = Math.round((correctAnswers / totalAnswered) * 100);
-            showToast(`Review Complete! ${correctAnswers}/${reviewWords.length} correct (${accuracy}%)`);
-            setTimeout(() => exitReviewMode(), 1000);
-        }
-
-        // Exit review mode
-        function exitReviewMode() {
-            isReviewMode = false;
-            reviewWords = [];
-            generateQuestion();
-            updateUI();
-        }
-
-        // Continue to next batch
-        function continueToNextBatch() {
-            document.getElementById('completion-modal').style.display = 'none';
-            changeBatch(1);
-        }
-
-        // Restart current batch
-        function restartCurrentBatch() {
-            document.getElementById('completion-modal').style.display = 'none';
-            resetCurrentBatch();
-            generateQuestion();
-            updateUI();
+        // Load current batch words
+        function loadCurrentBatch() {
+            const startIdx = currentBatch * batchSize;
+            const endIdx = Math.min(startIdx + batchSize, originalWords.length);
+            currentBatchWords = originalWords.slice(startIdx, endIdx);
+            shuffleArray(currentBatchWords);
         }
 
         // Reset current batch
@@ -2999,109 +1246,215 @@
             correctAnswers = 0;
             wrongAnswers = [];
             totalAnswered = 0;
+            isReviewMode = false;
+            reviewWrongBtn.style.display = 'none';
         }
 
-        // Shuffle current batch
-        function shuffleCurrentBatch() {
-            if (isReviewMode) {
-                shuffleArray(reviewWords);
-            } else {
-                shuffleArray(currentBatchWords);
+        // Show review section
+        function showReviewSection() {
+            if (reviewWords.length === 0) {
+                alert("No words to review yet! Answer some questions first.");
+                return;
             }
+
+            // Populate review list
+            reviewList.innerHTML = '';
+            reviewWords.forEach(word => {
+                const reviewItem = document.createElement('div');
+                reviewItem.className = 'review-item';
+                reviewItem.innerHTML = `
+                    <div class="review-chinese">${word.chinese}</div>
+                    <div class="review-pinyin">${word.pinyin}</div>
+                    <div class="review-english">${word.english}</div>
+                `;
+                reviewList.appendChild(reviewItem);
+            });
+
+            // Show review section
+            reviewSection.style.display = 'block';
+            document.querySelector('.question-container').style.display = 'none';
+        }
+
+        // Hide review section
+        function hideReviewSection() {
+            reviewSection.style.display = 'none';
+            document.querySelector('.question-container').style.display = 'flex';
+        }
+
+        // Start review session
+        function startReviewSession() {
+            if (reviewWords.length === 0) return;
+
+            isReviewMode = true;
             currentIndex = 0;
+            correctAnswers = 0;
+            wrongAnswers = [];
+            totalAnswered = 0;
+
+            hideReviewSection();
+            document.querySelector('.question-container').style.display = 'flex';
             generateQuestion();
             updateUI();
-            showToast('Batch shuffled! 🔀');
         }
 
-        // Reset all progress
-        function resetProgress() {
-            if (confirm('Reset all progress? This will start over from the beginning.')) {
-                currentBatch = 0;
-                resetCurrentBatch();
+        // Show completion screen
+        function showCompletionScreen() {
+            // Mark batch as completed
+            if (!isReviewMode) {
+                completedBatches.push(currentBatch);
+
+                // Store performance data
+                const accuracy = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+                batchPerformance[currentBatch] = {
+                    correct: correctAnswers,
+                    total: currentBatchWords.length,
+                    accuracy: accuracy
+                };
+            }
+
+            completionTotal.textContent = isReviewMode ? reviewWords.length : currentBatchWords.length;
+            completionCorrect.textContent = correctAnswers;
+            completionWrong.textContent = wrongAnswers.length;
+
+            const accuracy = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+            completionAccuracy.textContent = `${accuracy}%`;
+
+            // Show or hide review button based on whether there are wrong answers
+            completionReviewBtn.style.display = reviewWords.length > 0 ? 'block' : 'none';
+
+            // Change button text for review mode
+            completionNextBatchBtn.textContent = isReviewMode ? 'Back to Batch' : 'Next Batch';
+
+            completionScreen.style.display = 'flex';
+        }
+
+        // Start next batch
+        function startNextBatch() {
+            completionScreen.style.display = 'none';
+
+            if (isReviewMode) {
+                // Return to regular batch mode
                 isReviewMode = false;
-                reviewWords = [];
-                clearProgress();
+                resetCurrentBatch();
                 loadCurrentBatch();
-                updateBatchInfo();
+            } else {
+                // Go to next batch
+                currentBatch++;
+                resetCurrentBatch();
+                loadCurrentBatch();
+            }
+
+            generateQuestion();
+            updateUI();
+            updateBatchNavigation();
+        }
+
+        // Go to previous batch
+        function goToPreviousBatch() {
+            if (currentBatch > 0) {
+                currentBatch--;
+                resetCurrentBatch();
+                loadCurrentBatch();
                 generateQuestion();
                 updateUI();
-                showToast('Progress reset! Starting fresh 🔄');
+                updateBatchNavigation();
             }
         }
 
-        // Close review modal
-        function closeReviewModal() {
-            document.getElementById('review-modal').style.display = 'none';
-        }
-
-        // Save progress to localStorage
-        function saveProgress() {
-            try {
-                localStorage.setItem('hsk4QuizProgress', JSON.stringify({
-                    currentBatch,
-                    batchSize,
-                    currentIndex,
-                    correctAnswers,
-                    wrongAnswers,
-                    totalAnswered,
-                    isPinyinMode,
-                    isReviewMode,
-                    reviewWords,
-                    lastSaved: new Date().getTime()
-                }));
-            } catch (e) {
-                console.warn('Could not save progress:', e);
+        // Go to next batch
+        function goToNextBatch() {
+            const totalBatches = Math.ceil(originalWords.length / batchSize);
+            if (currentBatch < totalBatches - 1) {
+                currentBatch++;
+                resetCurrentBatch();
+                loadCurrentBatch();
+                generateQuestion();
+                updateUI();
+                updateBatchNavigation();
             }
         }
 
-        // Load progress from localStorage
-        function loadProgress() {
-            try {
-                const saved = localStorage.getItem('hsk4QuizProgress');
-                if (saved) {
-                    const savedData = JSON.parse(saved);
+        // Update batch navigation UI
+        function updateBatchNavigation() {
+            const totalBatches = Math.ceil(originalWords.length / batchSize);
+            batchInfo.textContent = `Batch ${currentBatch + 1} of ${totalBatches}`;
 
-                    currentBatch = savedData.currentBatch || 0;
-                    batchSize = savedData.batchSize || 50;
-                    currentIndex = savedData.currentIndex || 0;
-                    correctAnswers = savedData.correctAnswers || 0;
-                    wrongAnswers = savedData.wrongAnswers || [];
-                    totalAnswered = savedData.totalAnswered || 0;
-                    isPinyinMode = savedData.isPinyinMode !== undefined ? savedData.isPinyinMode : true;
-                    isReviewMode = savedData.isReviewMode || false;
-                    reviewWords = savedData.reviewWords || [];
+            // Enable/disable buttons
+            prevBatchBtn.disabled = currentBatch === 0;
+            nextBatchBtn.disabled = currentBatch === totalBatches - 1;
 
-                    // Update UI elements
-                    document.querySelectorAll('.batch-btn').forEach(btn => {
-                        btn.classList.toggle('active',
-                            (btn.dataset.size === 'all' && batchSize === originalWords.length) ||
-                            parseInt(btn.dataset.size) === batchSize
-                        );
-                    });
+            // Update progress overview if visible
+            if (progressOverview.style.display === 'block') {
+                updateProgressOverview();
+            }
+        }
 
-                    document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
-                    document.getElementById('mode-english').classList.toggle('active', !isPinyinMode);
+        // Show progress overview
+        function showProgressOverview() {
+            updateProgressOverview();
+            progressOverview.style.display = 'block';
+        }
 
-                    if (savedData.lastSaved) {
-                        showToast('Progress restored! 📱');
-                    }
+        // Hide progress overview
+        function hideProgressOverview() {
+            progressOverview.style.display = 'none';
+        }
+
+        // Update progress overview
+        function updateProgressOverview() {
+            const totalBatches = Math.ceil(originalWords.length / batchSize);
+            batchProgress.innerHTML = '';
+
+            for (let i = 0; i < totalBatches; i++) {
+                const batchItem = document.createElement('div');
+                batchItem.className = 'batch-progress-item';
+
+                if (i === currentBatch) {
+                    batchItem.classList.add('current');
+                } else if (completedBatches.includes(i)) {
+                    batchItem.classList.add('completed');
                 }
-            } catch (e) {
-                console.warn('Could not load progress:', e);
+
+                // Add review status if there are words to review
+                if (reviewWords.length > 0 && !batchItem.classList.contains('current')) {
+                    batchItem.classList.add('review');
+                }
+
+                batchItem.textContent = `Batch ${i + 1}`;
+
+                // Add performance data if available
+                if (batchPerformance[i]) {
+                    batchItem.title = `Accuracy: ${batchPerformance[i].accuracy}% (${batchPerformance[i].correct}/${batchPerformance[i].total})`;
+                }
+
+                batchItem.addEventListener('click', () => {
+                    if (i !== currentBatch) {
+                        currentBatch = i;
+                        resetCurrentBatch();
+                        loadCurrentBatch();
+                        generateQuestion();
+                        updateUI();
+                        updateBatchNavigation();
+                        hideProgressOverview();
+                    }
+                });
+
+                batchProgress.appendChild(batchItem);
             }
         }
 
-        // Clear progress from storage
-        function clearProgress() {
-            try {
-                localStorage.removeItem('hsk4QuizProgress');
-            } catch (e) {
-                console.warn('Could not clear progress:', e);
+        // Keyboard controls
+        function handleKeydown(e) {
+            if (e.key >= '1' && e.key <= '4') {
+                const optionIndex = parseInt(e.key) - 1;
+                const options = document.querySelectorAll('.option');
+                if (options[optionIndex] && !selectedOption) {
+                    selectOption.call(options[optionIndex]);
+                }
             }
         }
 
-        // Shuffle array (Fisher-Yates algorithm)
+        // Shuffle array
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -3111,6 +1464,23 @@
         }
 
         // Initialize the app
+        async function init() {
+            initTheme();
+            setupEventListeners();
+
+            // Load vocabulary
+            const success = await loadVocabulary();
+
+            if (success) {
+                loadCurrentBatch();
+                generateQuestion();
+                updateUI();
+                updateBatchNavigation();
+                showMainContent();
+            }
+        }
+
+        // Start the app
         init();
     </script>
 </body>
