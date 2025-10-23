@@ -1,7 +1,7 @@
 
-# 🎯 HSK 4 Vocabulary Quiz
+# 🎯 HSK 5 Vocabulary Quiz
 
-A modern, mobile-optimized vocabulary quiz app for Chinese HSK Level 4 exam preparation. Features intelligent question generation, dark/light themes, and comprehensive progress tracking.
+A modern, mobile-optimized vocabulary quiz app for Chinese HSK Level 5 exam preparation. Features intelligent question generation, dark/light themes, and comprehensive progress tracking.
 
 ![HSK 4 Quiz Demo](https://img.shields.io/badge/Demo-Live-brightgreen) ![Mobile Optimized](https://img.shields.io/badge/Mobile-Optimized-blue) ![Dark Theme](https://img.shields.io/badge/Theme-Dark%2FLight-purple) ![Progressive Web App](https://img.shields.io/badge/PWA-Ready-orange)
 
