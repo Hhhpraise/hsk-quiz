@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HSK 5 Vocabulary Quiz</title>
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -519,6 +521,65 @@
             color: white;
         }
 
+        /* Share Progress Modal */
+        .share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .share-content {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .share-title {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .share-url {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+            word-break: break-all;
+            font-size: 0.9rem;
+            text-align: left;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .qr-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .share-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -608,6 +669,11 @@
             .batch-progress {
                 grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             }
+
+            .share-content {
+                width: 95%;
+                padding: 16px;
+            }
         }
     </style>
 </head>
@@ -684,6 +750,9 @@
                     <button class="action-btn secondary-btn" id="save-progress-btn">
                         💾 Save
                     </button>
+                    <button class="action-btn secondary-btn" id="share-progress-btn">
+                        🔗 Share Progress
+                    </button>
                 </div>
             </div>
 
@@ -755,6 +824,22 @@
         </div>
     </div>
 
+    <!-- Share Progress Modal -->
+    <div class="share-modal" id="share-modal">
+        <div class="share-content">
+            <h2 class="share-title">Share Your Progress</h2>
+            <p>Use this URL to continue your progress on another device:</p>
+            <div class="share-url" id="share-url"></div>
+            <div class="qr-container" id="qr-container">
+                <div id="qr-code"></div>
+            </div>
+            <div class="share-actions">
+                <button class="action-btn secondary-btn" id="close-share-btn">Close</button>
+                <button class="action-btn" id="copy-url-btn">Copy URL</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let originalWords = [];
@@ -808,6 +893,49 @@
         const closeProgressBtn = document.getElementById('close-progress-btn');
         const batchProgress = document.getElementById('batch-progress');
         const saveProgressBtn = document.getElementById('save-progress-btn');
+        const shareProgressBtn = document.getElementById('share-progress-btn');
+        const shareModal = document.getElementById('share-modal');
+        const shareUrlEl = document.getElementById('share-url');
+        const closeShareBtn = document.getElementById('close-share-btn');
+        const copyUrlBtn = document.getElementById('copy-url-btn');
+        const qrCodeContainer = document.getElementById('qr-code');
+
+        // UTF-8 safe encoding/decoding functions
+        function encodeUTF8(str) {
+            try {
+                // First try the modern TextEncoder API
+                if (typeof TextEncoder !== 'undefined') {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(str);
+                    return btoa(String.fromCharCode(...data));
+                }
+            } catch (e) {
+                console.log('TextEncoder not available, using fallback');
+            }
+
+            // Fallback for older browsers
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function decodeUTF8(str) {
+            try {
+                // First try the modern TextDecoder API
+                if (typeof TextDecoder !== 'undefined') {
+                    const binaryStr = atob(str);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    const decoder = new TextDecoder();
+                    return decoder.decode(bytes);
+                }
+            } catch (e) {
+                console.log('TextDecoder not available, using fallback');
+            }
+
+            // Fallback for older browsers
+            return decodeURIComponent(escape(atob(str)));
+        }
 
         // Load vocabulary from JSON file
         async function loadVocabulary() {
@@ -1013,6 +1141,11 @@
 
             // Save progress button
             saveProgressBtn.addEventListener('click', saveProgress);
+
+            // Share progress button
+            shareProgressBtn.addEventListener('click', showShareModal);
+            closeShareBtn.addEventListener('click', hideShareModal);
+            copyUrlBtn.addEventListener('click', copyShareUrl);
 
             // Keyboard controls
             document.addEventListener('keydown', handleKeydown);
@@ -1462,13 +1595,6 @@
             };
 
             localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
-
-            // Show a temporary confirmation
-            const originalText = saveProgressBtn.textContent;
-            saveProgressBtn.textContent = '✓ Saved';
-            setTimeout(() => {
-                saveProgressBtn.textContent = originalText;
-            }, 1500);
         }
 
         // Load progress from localStorage
@@ -1509,6 +1635,110 @@
             }
         }
 
+        // Share progress via URL
+        function showShareModal() {
+            const progressData = localStorage.getItem('hskQuizProgress');
+            if (!progressData) {
+                alert('No progress to share! Complete some questions first.');
+                return;
+            }
+
+            try {
+                // Generate shareable URL using UTF-8 safe encoding
+                const encodedData = encodeUTF8(progressData).replace(/=/g, '');
+                const shareUrl = `${window.location.origin}${window.location.pathname}?progress=${encodedData}`;
+
+                // Display URL
+                shareUrlEl.textContent = shareUrl;
+
+                // Generate QR code using external library
+                generateQRCode(shareUrl);
+
+                // Show modal
+                shareModal.style.display = 'flex';
+            } catch (error) {
+                console.error('Error generating share URL:', error);
+                alert('Error generating share URL. Please try again.');
+            }
+        }
+
+        function hideShareModal() {
+            shareModal.style.display = 'none';
+        }
+
+        function copyShareUrl() {
+            const url = shareUrlEl.textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                copyUrlBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyUrlBtn.textContent = 'Copy URL';
+                }, 2000);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                copyUrlBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyUrlBtn.textContent = 'Copy URL';
+                }, 2000);
+            });
+        }
+
+        // Generate QR Code using external library
+        function generateQRCode(text) {
+            // Clear previous QR code
+            qrCodeContainer.innerHTML = '';
+
+            try {
+                // Use the qrcode-generator library
+                const typeNumber = 0; // Auto detect type
+                const errorCorrectionLevel = 'L';
+                const qr = qrcode(typeNumber, errorCorrectionLevel);
+                qr.addData(text);
+                qr.make();
+
+                // Create QR code image
+                const qrImage = qr.createImgTag(4, 0);
+                qrCodeContainer.innerHTML = qrImage;
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                qrCodeContainer.innerHTML = '<p style="color: var(--error);">QR code generation failed</p>';
+            }
+        }
+
+        // Load progress from URL
+        function loadProgressFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const progressParam = urlParams.get('progress');
+
+            if (progressParam) {
+                try {
+                    // Add padding if needed
+                    let data = progressParam;
+                    while (data.length % 4) {
+                        data += '=';
+                    }
+
+                    const progressData = decodeUTF8(data);
+                    const progress = JSON.parse(progressData);
+
+                    if (progress && confirm('Load progress from URL? This will replace your current progress.')) {
+                        localStorage.setItem('hskQuizProgress', JSON.stringify(progress));
+                        // Clean URL
+                        window.history.replaceState({}, '', window.location.pathname);
+                        alert('Progress loaded successfully! Page will reload.');
+                        location.reload();
+                    }
+                } catch (e) {
+                    console.error('Error loading progress from URL:', e);
+                }
+            }
+        }
+
         // Keyboard controls
         function handleKeydown(e) {
             if (e.key >= '1' && e.key <= '4') {
@@ -1540,6 +1770,7 @@
             if (success) {
                 loadCurrentBatch();
                 loadProgress(); // Load saved progress after vocabulary is loaded
+                loadProgressFromURL(); // Check for progress in URL
                 generateQuestion();
                 updateUI();
                 updateBatchNavigation();
