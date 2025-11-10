@@ -321,6 +321,10 @@
             position: relative;
             overflow: hidden;
             color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 70px;
         }
 
         .option:hover {
@@ -351,6 +355,19 @@
             color: white;
             border-color: var(--error);
             animation: shake 0.5s ease;
+        }
+
+        /* Option content styling for better mobile display */
+        .option-pinyin {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .option-english {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            line-height: 1.3;
         }
 
         /* Review Section */
@@ -840,12 +857,25 @@
             }
 
             .option {
-                padding: 14px 12px;
+                padding: 12px 10px;
                 font-size: 1rem;
-                min-height: 54px;
+                min-height: 70px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                flex-direction: column;
+            }
+
+            .option-pinyin {
+                font-size: 1rem;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+
+            .option-english {
+                font-size: 0.85rem;
+                opacity: 0.9;
+                line-height: 1.2;
             }
 
             .batch-navigation {
@@ -998,11 +1028,19 @@
             }
 
             .option {
-                padding: 12px 8px;
+                padding: 10px 8px;
                 font-size: 0.9rem;
-                min-height: 50px;
+                min-height: 65px;
                 border-radius: 10px;
                 font-size: 16px;
+            }
+
+            .option-pinyin {
+                font-size: 0.95rem;
+            }
+
+            .option-english {
+                font-size: 0.8rem;
             }
 
             .quick-stats {
@@ -1125,9 +1163,17 @@
             }
 
             .option {
-                padding: 10px 8px;
+                padding: 8px 6px;
                 font-size: 0.85rem;
-                min-height: 44px;
+                min-height: 60px;
+            }
+
+            .option-pinyin {
+                font-size: 0.9rem;
+            }
+
+            .option-english {
+                font-size: 0.75rem;
             }
         }
 
@@ -1613,17 +1659,7 @@
                 if (incorrectOptions.length >= 3) break;
                 if (!usedWords.has(similarWord.chinese)) {
                     usedWords.add(similarWord.chinese);
-
-                    const option = document.createElement('div');
-                    option.className = 'option';
-
-                    // Mobile-friendly text: shorter on small screens
-                    const isMobile = window.innerWidth <= 768;
-                    option.textContent = isPinyinMode
-                        ? (isMobile ? similarWord.pinyin : `${similarWord.pinyin} - ${similarWord.english}`)
-                        : similarWord.english;
-
-                    incorrectOptions.push(option);
+                    incorrectOptions.push(createOptionElement(similarWord, false));
                 }
             }
 
@@ -1634,22 +1670,42 @@
 
                 if (!usedWords.has(candidateWord.chinese) && candidateWord.chinese !== correctWord.chinese) {
                     usedWords.add(candidateWord.chinese);
-
-                    const option = document.createElement('div');
-                    option.className = 'option';
-
-                    // Mobile-friendly text: shorter on small screens
-                    const isMobile = window.innerWidth <= 768;
-                    option.textContent = isPinyinMode
-                        ? (isMobile ? candidateWord.pinyin : `${candidateWord.pinyin} - ${candidateWord.english}`)
-                        : candidateWord.english;
-
-                    incorrectOptions.push(option);
+                    incorrectOptions.push(createOptionElement(candidateWord, false));
                 }
                 index++;
             }
 
             return incorrectOptions;
+        }
+
+        // Create option element with proper formatting for mobile
+        function createOptionElement(word, isCorrect) {
+            const option = document.createElement('div');
+            option.className = 'option';
+            if (isCorrect) {
+                option.dataset.correct = 'true';
+            }
+
+            const isMobile = window.innerWidth <= 768;
+
+            if (isPinyinMode) {
+                // For pinyin mode, always show both pinyin and English
+                const pinyinEl = document.createElement('div');
+                pinyinEl.className = 'option-pinyin';
+                pinyinEl.textContent = word.pinyin;
+
+                const englishEl = document.createElement('div');
+                englishEl.className = 'option-english';
+                englishEl.textContent = word.english;
+
+                option.appendChild(pinyinEl);
+                option.appendChild(englishEl);
+            } else {
+                // For English mode, just show English
+                option.textContent = word.english;
+            }
+
+            return option;
         }
 
         // Generate question and options with error handling - DETERMINISTIC OPTION ORDER
@@ -1706,15 +1762,7 @@
                 optionsEl.innerHTML = '';
 
                 // Create correct option
-                const correctOption = document.createElement('div');
-                correctOption.className = 'option';
-                correctOption.dataset.correct = 'true';
-
-                // Mobile-friendly text: shorter on small screens
-                const isMobile = window.innerWidth <= 768;
-                correctOption.textContent = isPinyinMode
-                    ? (isMobile ? currentWord.pinyin : `${currentWord.pinyin} - ${currentWord.english}`)
-                    : currentWord.english;
+                const correctOption = createOptionElement(currentWord, true);
 
                 // Create incorrect options using similar words (deterministic)
                 const incorrectOptions = generateIncorrectOptions(currentWord);
