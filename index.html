@@ -9,7 +9,7 @@
     <!-- LZ-String Compression Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
-        /* Your existing CSS remains exactly the same */
+        /* Your existing CSS remains exactly the same, adding new styles for analysis */
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
@@ -583,6 +583,171 @@
             margin-top: 16px;
         }
 
+        /* Analysis Dashboard */
+        .analysis-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .analysis-content {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 95%;
+            width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .analysis-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .analysis-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .analysis-stat-card {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .analysis-stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .analysis-stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .analysis-section {
+            margin-bottom: 24px;
+        }
+
+        .analysis-section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 6px;
+        }
+
+        .batch-performance {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .batch-performance-item {
+            background: var(--bg-secondary);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .batch-performance-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow);
+        }
+
+        .batch-performance-item.current {
+            border: 2px solid var(--accent);
+        }
+
+        .batch-performance-item.completed {
+            border-left: 4px solid var(--success);
+        }
+
+        .batch-performance-item.in-progress {
+            border-left: 4px solid var(--warning);
+        }
+
+        .batch-performance-item.not-started {
+            border-left: 4px solid var(--border);
+            opacity: 0.7;
+        }
+
+        .batch-number {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .batch-accuracy {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .batch-stats {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .weak-words-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .weak-word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .weak-word-chinese {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .weak-word-stats {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .weak-word-accuracy {
+            font-weight: bold;
+            color: var(--error);
+        }
+
+        .analysis-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -631,6 +796,19 @@
                 width: 100%;
                 justify-content: center;
             }
+
+            .analysis-content {
+                width: 95%;
+                padding: 16px;
+            }
+
+            .analysis-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .batch-performance {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
         }
 
         @media (max-width: 480px) {
@@ -676,6 +854,14 @@
             .share-content {
                 width: 95%;
                 padding: 16px;
+            }
+
+            .analysis-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .batch-performance {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             }
         }
     </style>
@@ -749,6 +935,9 @@
                     </button>
                     <button class="action-btn secondary-btn" id="progress-overview-btn">
                         📊 Progress
+                    </button>
+                    <button class="action-btn secondary-btn" id="analysis-btn">
+                        📈 Analysis
                     </button>
                     <button class="action-btn secondary-btn" id="save-progress-btn">
                         💾 Save
@@ -843,6 +1032,50 @@
         </div>
     </div>
 
+    <!-- Analysis Dashboard Modal -->
+    <div class="analysis-modal" id="analysis-modal">
+        <div class="analysis-content">
+            <h2 class="analysis-title">Performance Analysis</h2>
+
+            <!-- Overall Statistics -->
+            <div class="analysis-stats">
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-number" id="analysis-total-batches">0</div>
+                    <div class="analysis-stat-label">Total Batches</div>
+                </div>
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-number" id="analysis-completed-batches">0</div>
+                    <div class="analysis-stat-label">Completed Batches</div>
+                </div>
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-number" id="analysis-overall-accuracy">0%</div>
+                    <div class="analysis-stat-label">Overall Accuracy</div>
+                </div>
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-number" id="analysis-words-to-review">0</div>
+                    <div class="analysis-stat-label">Words to Review</div>
+                </div>
+            </div>
+
+            <!-- Batch Performance -->
+            <div class="analysis-section">
+                <h3 class="analysis-section-title">Batch Performance</h3>
+                <div class="batch-performance" id="batch-performance"></div>
+            </div>
+
+            <!-- Weak Words -->
+            <div class="analysis-section">
+                <h3 class="analysis-section-title">Words Needing Practice</h3>
+                <div class="weak-words-list" id="weak-words-list"></div>
+            </div>
+
+            <div class="analysis-actions">
+                <button class="action-btn secondary-btn" id="close-analysis-btn">Close</button>
+                <button class="action-btn" id="export-analysis-btn">Export Data</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let originalWords = [];
@@ -903,287 +1136,19 @@
         const copyUrlBtn = document.getElementById('copy-url-btn');
         const qrCodeContainer = document.getElementById('qr-code');
 
-        // ==================== COMPRESSION FUNCTIONS ====================
+        // Analysis elements
+        const analysisBtn = document.getElementById('analysis-btn');
+        const analysisModal = document.getElementById('analysis-modal');
+        const closeAnalysisBtn = document.getElementById('close-analysis-btn');
+        const exportAnalysisBtn = document.getElementById('export-analysis-btn');
+        const analysisTotalBatches = document.getElementById('analysis-total-batches');
+        const analysisCompletedBatches = document.getElementById('analysis-completed-batches');
+        const analysisOverallAccuracy = document.getElementById('analysis-overall-accuracy');
+        const analysisWordsToReview = document.getElementById('analysis-words-to-review');
+        const batchPerformanceEl = document.getElementById('batch-performance');
+        const weakWordsList = document.getElementById('weak-words-list');
 
-        // Convert legacy progress data to optimized format (v2)
-        function convertToOptimizedFormat(legacyData) {
-            try {
-                const data = typeof legacyData === 'string' ? JSON.parse(legacyData) : legacyData;
-
-                // Create optimized structure with shorter keys
-                const optimized = {
-                    v: 2, // version flag
-                    b: data.currentBatch || 0,
-                    s: data.batchSize || 50,
-                    i: data.currentIndex || 0,
-                    c: data.correctAnswers || 0,
-                    t: data.totalAnswered || 0,
-                    p: data.isPinyinMode !== false,
-                    m: data.isReviewMode || false,
-                    // Store only Chinese characters for review words
-                    r: (data.reviewWords || []).map(w => w.chinese),
-                    d: data.completedBatches || [],
-                    // Wrong answers - keep all but use shorter structure
-                    w: (data.wrongAnswers || []).map(wa => ({
-                        c: wa.word.chinese,
-                        s: wa.selectedAnswer,
-                        a: wa.correctAnswer
-                    })),
-                    // Batch performance with shorter keys
-                    bp: {},
-                    ts: Date.now(),
-                    tw: data.totalWordsCount || originalWords.length
-                };
-
-                // Optimize batch performance data
-                if (data.batchPerformance) {
-                    Object.keys(data.batchPerformance).forEach(batch => {
-                        const perf = data.batchPerformance[batch];
-                        optimized.bp[batch] = {
-                            c: perf.correct || 0,
-                            t: perf.total || 0,
-                            a: perf.accuracy || 0
-                        };
-                    });
-                }
-
-                return JSON.stringify(optimized);
-            } catch (error) {
-                console.error('Error converting to optimized format:', error);
-                return legacyData; // Fallback to original data
-            }
-        }
-
-        // Convert optimized format back to legacy format for loading
-        function convertToLegacyFormat(optimizedData, originalWords) {
-            try {
-                const data = typeof optimizedData === 'string' ? JSON.parse(optimizedData) : optimizedData;
-
-                if (data.v !== 2) {
-                    return JSON.stringify(data); // Already in legacy format
-                }
-
-                // Reconstruct full objects from Chinese characters
-                const legacy = {
-                    currentBatch: data.b || 0,
-                    batchSize: data.s || 50,
-                    currentIndex: data.i || 0,
-                    correctAnswers: data.c || 0,
-                    totalAnswered: data.t || 0,
-                    isPinyinMode: data.p !== false,
-                    isReviewMode: data.m || false,
-                    // Reconstruct reviewWords with full objects
-                    reviewWords: (data.r || []).map(chinese =>
-                        originalWords.find(w => w.chinese === chinese) || { chinese }
-                    ).filter(w => w.chinese),
-                    completedBatches: data.d || [],
-                    // Reconstruct wrongAnswers with full objects
-                    wrongAnswers: (data.w || []).map(wa => {
-                        const word = originalWords.find(w => w.chinese === wa.c) || { chinese: wa.c };
-                        return {
-                            word: word,
-                            selectedAnswer: wa.s,
-                            correctAnswer: wa.a
-                        };
-                    }),
-                    batchPerformance: {},
-                    totalWordsCount: data.tw || originalWords.length
-                };
-
-                // Reconstruct batch performance
-                if (data.bp) {
-                    Object.keys(data.bp).forEach(batch => {
-                        const perf = data.bp[batch];
-                        legacy.batchPerformance[batch] = {
-                            correct: perf.c || 0,
-                            total: perf.t || 0,
-                            accuracy: perf.a || 0
-                        };
-                    });
-                }
-
-                return JSON.stringify(legacy);
-            } catch (error) {
-                console.error('Error converting to legacy format:', error);
-                return JSON.stringify(optimizedData); // Fallback
-            }
-        }
-
-        // Detect data format version
-        function detectDataFormat(data) {
-            try {
-                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-                return parsed.v === 2 ? 'optimized' : 'legacy';
-            } catch (error) {
-                return 'legacy'; // Assume legacy format on error
-            }
-        }
-
-        // UTF-8 safe encoding/decoding functions
-        function encodeUTF8(str) {
-            try {
-                if (typeof TextEncoder !== 'undefined') {
-                    const encoder = new TextEncoder();
-                    const data = encoder.encode(str);
-                    return btoa(String.fromCharCode(...data));
-                }
-            } catch (e) {
-                console.log('TextEncoder not available, using fallback');
-            }
-            return btoa(unescape(encodeURIComponent(str)));
-        }
-
-        function decodeUTF8(str) {
-            try {
-                if (typeof TextDecoder !== 'undefined') {
-                    const binaryStr = atob(str);
-                    const bytes = new Uint8Array(binaryStr.length);
-                    for (let i = 0; i < binaryStr.length; i++) {
-                        bytes[i] = binaryStr.charCodeAt(i);
-                    }
-                    const decoder = new TextDecoder();
-                    return decoder.decode(bytes);
-                }
-            } catch (e) {
-                console.log('TextDecoder not available, using fallback');
-            }
-            return decodeURIComponent(escape(atob(str)));
-        }
-
-        // Updated share progress function with compression
-        function showShareModal() {
-            const progressData = localStorage.getItem('hskQuizProgress');
-            if (!progressData) {
-                alert('No progress to share! Complete some questions first.');
-                return;
-            }
-
-            try {
-                // Convert to optimized format for sharing (regardless of current format)
-                const optimizedData = convertToOptimizedFormat(progressData);
-
-                // Compress using LZ-String
-                const compressedData = LZString.compressToBase64(optimizedData)
-                    .replace(/\+/g, '-')  // URL-safe replacements
-                    .replace(/\//g, '_')
-                    .replace(/=+$/, '');   // Remove padding
-
-                const shareUrl = `${window.location.origin}${window.location.pathname}?p=${compressedData}`;
-
-                // Display URL
-                shareUrlEl.textContent = shareUrl;
-
-                // Generate QR code
-                generateQRCode(shareUrl);
-
-                // Show modal
-                shareModal.style.display = 'flex';
-            } catch (error) {
-                console.error('Error generating share URL:', error);
-                // Fallback to old method without compression
-                try {
-                    const encodedData = encodeUTF8(progressData).replace(/=/g, '');
-                    const shareUrl = `${window.location.origin}${window.location.pathname}?progress=${encodedData}`;
-                    shareUrlEl.textContent = shareUrl;
-                    generateQRCode(shareUrl);
-                    shareModal.style.display = 'flex';
-                } catch (fallbackError) {
-                    alert('Error generating share URL. Please try again.');
-                }
-            }
-        }
-
-        // Updated load progress from URL function with decompression and format detection
-        function loadProgressFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-
-            // Try new compressed format first
-            let progressParam = urlParams.get('p');
-            if (progressParam) {
-                try {
-                    // Add padding back if needed
-                    let data = progressParam.replace(/-/g, '+').replace(/_/g, '/');
-                    while (data.length % 4) {
-                        data += '=';
-                    }
-
-                    // Decompress
-                    const decompressedData = LZString.decompressFromBase64(data);
-                    if (!decompressedData) {
-                        throw new Error('Decompression failed');
-                    }
-
-                    // Detect format and convert to legacy if needed
-                    const format = detectDataFormat(decompressedData);
-                    let progressData;
-
-                    if (format === 'optimized') {
-                        progressData = convertToLegacyFormat(decompressedData, originalWords);
-                    } else {
-                        progressData = decompressedData;
-                    }
-
-                    if (progressData && confirm('Load progress from URL? This will replace your current progress.')) {
-                        localStorage.setItem('hskQuizProgress', progressData);
-                        // Clean URL
-                        window.history.replaceState({}, '', window.location.pathname);
-                        alert('Progress loaded successfully! Page will reload.');
-                        location.reload();
-                    }
-                } catch (e) {
-                    console.error('Error loading compressed progress from URL:', e);
-                }
-            }
-
-            // Fallback to old format (for backward compatibility with old shares)
-            else {
-                const progressParam = urlParams.get('progress');
-                if (progressParam) {
-                    try {
-                        // Add padding if needed
-                        let data = progressParam;
-                        while (data.length % 4) {
-                            data += '=';
-                        }
-
-                        const progressData = decodeUTF8(data);
-
-                        if (progressData && confirm('Load progress from URL? This will replace your current progress.')) {
-                            localStorage.setItem('hskQuizProgress', progressData);
-                            // Clean URL
-                            window.history.replaceState({}, '', window.location.pathname);
-                            alert('Progress loaded successfully! Page will reload.');
-                            location.reload();
-                        }
-                    } catch (e) {
-                        console.error('Error loading progress from URL:', e);
-                    }
-                }
-            }
-        }
-
-        // Updated QR code generation for smaller codes
-        function generateQRCode(text) {
-            qrCodeContainer.innerHTML = '';
-
-            try {
-                // Use lower error correction for smaller QR codes
-                const typeNumber = 0;
-                const errorCorrectionLevel = 'L'; // Low error correction = smaller code
-                const qr = qrcode(typeNumber, errorCorrectionLevel);
-                qr.addData(text);
-                qr.make();
-
-                // Create smaller QR code
-                const qrImage = qr.createImgTag(3, 0); // Reduced from 4 to 3
-                qrCodeContainer.innerHTML = qrImage;
-            } catch (error) {
-                console.error('Error generating QR code:', error);
-                qrCodeContainer.innerHTML = '<p style="color: var(--error);">QR code generation failed</p>';
-            }
-        }
-
-        // ==================== EXISTING APP FUNCTIONS ====================
+        // ==================== CONSISTENT BATCHES IMPLEMENTATION ====================
 
         // Load vocabulary from JSON file
         async function loadVocabulary() {
@@ -1226,7 +1191,7 @@
                 originalWords = data.words;
                 totalWordsCount = data.totalWords || data.words.length;
 
-                // Process the word list to interleave two alphabetical lists
+                // Process the word list - SIMPLIFIED: just sort alphabetically
                 arrangeWords();
 
                 // Precompute similar words for each word
@@ -1246,9 +1211,15 @@
             }
         }
 
-        // Precompute similar words for each word
+        // Process the word list - CONSISTENT ALPHABETICAL ORDERING
+        function arrangeWords() {
+            // Simply sort all words alphabetically by Chinese characters - NO RANDOMNESS
+            originalWords.sort((a, b) => a.chinese.localeCompare(b.chinese));
+            // Remove all random interleaving - just use the sorted list
+        }
+
+        // Precompute similar words for each word - DETERMINISTIC
         function precomputeSimilarWords() {
-            // Create a map of pinyin to words (without tones for matching)
             const pinyinMap = {};
 
             originalWords.forEach(word => {
@@ -1264,7 +1235,7 @@
                 pinyinMap[basePinyin].push(word);
             });
 
-            // For each word, find similar words
+            // For each word, find similar words - DETERMINISTIC
             originalWords.forEach(word => {
                 const basePinyin = word.pinyin
                     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -1274,7 +1245,7 @@
                 // Find words with similar pinyin (same initial or final)
                 const similarWords = [];
 
-                // Check for exact pinyin matches (without tones)
+                // Check for exact pinyin matches (without tones) - DETERMINISTIC
                 if (pinyinMap[basePinyin]) {
                     pinyinMap[basePinyin].forEach(w => {
                         if (w.chinese !== word.chinese && !similarWords.some(sw => sw.chinese === w.chinese)) {
@@ -1283,7 +1254,7 @@
                     });
                 }
 
-                // Check for partial pinyin matches (first 2-3 characters)
+                // Check for partial pinyin matches (first 2-3 characters) - DETERMINISTIC
                 Object.keys(pinyinMap).forEach(pinyin => {
                     if (pinyin !== basePinyin && (
                         pinyin.startsWith(basePinyin.substring(0, 2)) ||
@@ -1297,150 +1268,76 @@
                     }
                 });
 
-                // If we don't have enough similar words, add some random ones
-                while (similarWords.length < 5) {
-                    const randomWord = originalWords[Math.floor(Math.random() * originalWords.length)];
-                    if (randomWord.chinese !== word.chinese && !similarWords.some(w => w.chinese === randomWord.chinese)) {
-                        similarWords.push(randomWord);
+                // If we don't have enough similar words, add from beginning of list - DETERMINISTIC
+                let index = 0;
+                while (similarWords.length < 5 && index < originalWords.length) {
+                    const candidateWord = originalWords[index];
+                    if (candidateWord.chinese !== word.chinese &&
+                        !similarWords.some(w => w.chinese === candidateWord.chinese)) {
+                        similarWords.push(candidateWord);
                     }
+                    index++;
                 }
 
                 similarWordsMap[word.chinese] = similarWords;
             });
         }
 
-        // Show error message
-        function showError(message) {
-            loadingScreen.style.display = 'none';
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
+        // Load current batch words - NO SHUFFLING
+        function loadCurrentBatch() {
+            const startIdx = currentBatch * batchSize;
+            const endIdx = Math.min(startIdx + batchSize, originalWords.length);
+            currentBatchWords = originalWords.slice(startIdx, endIdx);
+            // REMOVED: shuffleArray(currentBatchWords); - Batches are now consistent
         }
 
-        // Hide loading screen and show main content
-        function showMainContent() {
-            loadingScreen.style.display = 'none';
-            mainContainer.style.display = 'block';
-        }
+        // Generate incorrect options - DETERMINISTIC
+        function generateIncorrectOptions(correctWord) {
+            const incorrectOptions = [];
+            const usedWords = new Set([correctWord.chinese]);
 
-        // Process the word list to interleave two alphabetical lists
-        function arrangeWords() {
-            // First, sort all words alphabetically by Chinese characters
-            originalWords.sort((a, b) => a.chinese.localeCompare(b.chinese));
+            // Get similar words for this word (deterministic)
+            const similarWords = similarWordsMap[correctWord.chinese] || [];
 
-            // Split into two halves
-            const half = Math.ceil(originalWords.length / 2);
-            const firstHalf = originalWords.slice(0, half);
-            const secondHalf = originalWords.slice(half);
+            // Use similar words first (deterministic order)
+            for (const similarWord of similarWords) {
+                if (incorrectOptions.length >= 3) break;
+                if (!usedWords.has(similarWord.chinese)) {
+                    usedWords.add(similarWord.chinese);
 
-            // Interleave the two halves
-            const interleaved = [];
-            let i = 0, j = 0;
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.textContent = isPinyinMode
+                        ? `${similarWord.pinyin} - ${similarWord.english}`
+                        : similarWord.english;
 
-            // Alternate between the two lists with some randomness
-            while (i < firstHalf.length && j < secondHalf.length) {
-                // Randomly decide which list to take from next
-                if (Math.random() < 0.5) {
-                    interleaved.push(firstHalf[i++]);
-                } else {
-                    interleaved.push(secondHalf[j++]);
+                    incorrectOptions.push(option);
                 }
             }
 
-            // Add any remaining words
-            while (i < firstHalf.length) interleaved.push(firstHalf[i++]);
-            while (j < secondHalf.length) interleaved.push(secondHalf[j++]);
+            // For remaining options, use deterministic selection from beginning of list
+            let index = 0;
+            while (incorrectOptions.length < 3 && index < originalWords.length) {
+                const candidateWord = originalWords[index];
 
-            // Replace the original array with our interleaved version
-            originalWords = interleaved;
+                if (!usedWords.has(candidateWord.chinese) && candidateWord.chinese !== correctWord.chinese) {
+                    usedWords.add(candidateWord.chinese);
+
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.textContent = isPinyinMode
+                        ? `${candidateWord.pinyin} - ${candidateWord.english}`
+                        : candidateWord.english;
+
+                    incorrectOptions.push(option);
+                }
+                index++;
+            }
+
+            return incorrectOptions;
         }
 
-        // Theme management
-        function initTheme() {
-            const savedTheme = localStorage.getItem('hsk-theme') || 'light';
-            document.body.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
-        }
-
-        function toggleTheme() {
-            const currentTheme = document.body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('hsk-theme', newTheme);
-            updateThemeIcon(newTheme);
-        }
-
-        function updateThemeIcon(theme) {
-            themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            themeToggle.addEventListener('click', toggleTheme);
-
-            // Batch size buttons
-            document.querySelectorAll('.batch-btn').forEach(btn => {
-                btn.addEventListener('click', () => changeBatchSize(btn.dataset.size));
-            });
-
-            // Mode buttons
-            document.getElementById('mode-pinyin').addEventListener('click', () => switchMode(true));
-            document.getElementById('mode-english').addEventListener('click', () => switchMode(false));
-
-            // Review buttons
-            reviewWrongBtn.addEventListener('click', showReviewSection);
-            closeReviewBtn.addEventListener('click', hideReviewSection);
-            practiceReviewBtn.addEventListener('click', startReviewSession);
-
-            // Completion screen buttons
-            completionReviewBtn.addEventListener('click', showReviewSection);
-            completionNextBatchBtn.addEventListener('click', startNextBatch);
-
-            // Batch navigation
-            prevBatchBtn.addEventListener('click', goToPreviousBatch);
-            nextBatchBtn.addEventListener('click', goToNextBatch);
-
-            // Progress overview
-            progressOverviewBtn.addEventListener('click', showProgressOverview);
-            closeProgressBtn.addEventListener('click', hideProgressOverview);
-
-            // Save progress button
-            saveProgressBtn.addEventListener('click', saveProgress);
-
-            // Share progress button
-            shareProgressBtn.addEventListener('click', showShareModal);
-            closeShareBtn.addEventListener('click', hideShareModal);
-            copyUrlBtn.addEventListener('click', copyShareUrl);
-
-            // Keyboard controls
-            document.addEventListener('keydown', handleKeydown);
-        }
-
-        // Change batch size
-        function changeBatchSize(size) {
-            document.querySelectorAll('.batch-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.size === size);
-            });
-
-            batchSize = size === 'all' ? originalWords.length : parseInt(size);
-            currentBatch = 0;
-            resetCurrentBatch();
-            loadCurrentBatch();
-            generateQuestion();
-            updateUI();
-            updateBatchNavigation();
-            saveProgress();
-        }
-
-        // Switch between pinyin and english mode
-        function switchMode(pinyinMode) {
-            isPinyinMode = pinyinMode;
-            document.getElementById('mode-pinyin').classList.toggle('active', pinyinMode);
-            document.getElementById('mode-english').classList.toggle('active', !pinyinMode);
-            generateQuestion();
-            saveProgress();
-        }
-
-        // Generate question and options with error handling
+        // Generate question and options with error handling - DETERMINISTIC OPTION ORDER
         function generateQuestion() {
             try {
                 const totalWords = isReviewMode ? reviewWords.length : currentBatchWords.length;
@@ -1501,12 +1398,12 @@
                     ? `${currentWord.pinyin} - ${currentWord.english}`
                     : currentWord.english;
 
-                // Create incorrect options using similar words
+                // Create incorrect options using similar words (deterministic)
                 const incorrectOptions = generateIncorrectOptions(currentWord);
 
-                // Combine and shuffle options
+                // Combine and use deterministic shuffle based on current word
                 const allOptions = [correctOption, ...incorrectOptions];
-                shuffleArray(allOptions);
+                deterministicShuffle(allOptions, currentWord.chinese);
 
                 // Add options to DOM
                 allOptions.forEach((option) => {
@@ -1524,48 +1421,355 @@
             }
         }
 
-        // Generate incorrect options using similar words
-        function generateIncorrectOptions(correctWord) {
-            const incorrectOptions = [];
-            const usedWords = new Set([correctWord.chinese]);
-
-            // Get similar words for this word
-            const similarWords = similarWordsMap[correctWord.chinese] || [];
-
-            // Use similar words first
-            for (const similarWord of similarWords) {
-                if (incorrectOptions.length >= 3) break;
-                if (!usedWords.has(similarWord.chinese)) {
-                    usedWords.add(similarWord.chinese);
-
-                    const option = document.createElement('div');
-                    option.className = 'option';
-                    option.textContent = isPinyinMode
-                        ? `${similarWord.pinyin} - ${similarWord.english}`
-                        : similarWord.english;
-
-                    incorrectOptions.push(option);
-                }
+        // Deterministic shuffle based on word Chinese character
+        function deterministicShuffle(array, seed) {
+            // Create a simple hash from the seed string
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) {
+                hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                hash = hash & hash; // Convert to 32bit integer
             }
 
-            // If we need more options, add random ones
-            while (incorrectOptions.length < 3) {
-                const randomWord = originalWords[Math.floor(Math.random() * originalWords.length)];
+            // Use the hash to deterministically shuffle
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.abs(hash % (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+                // Update hash for next iteration
+                hash = ((hash << 5) - hash) + i;
+            }
+            return array;
+        }
 
-                if (!usedWords.has(randomWord.chinese)) {
-                    usedWords.add(randomWord.chinese);
+        // ==================== ANALYSIS DASHBOARD ====================
 
-                    const option = document.createElement('div');
-                    option.className = 'option';
-                    option.textContent = isPinyinMode
-                        ? `${randomWord.pinyin} - ${randomWord.english}`
-                        : randomWord.english;
+        // Show analysis dashboard
+        function showAnalysisModal() {
+            updateAnalysisDashboard();
+            analysisModal.style.display = 'flex';
+        }
 
-                    incorrectOptions.push(option);
-                }
+        // Hide analysis dashboard
+        function hideAnalysisModal() {
+            analysisModal.style.display = 'none';
+        }
+
+        // Update analysis dashboard with current data
+        function updateAnalysisDashboard() {
+            const totalBatches = Math.ceil(originalWords.length / batchSize);
+
+            // Update overall stats
+            analysisTotalBatches.textContent = totalBatches;
+            analysisCompletedBatches.textContent = completedBatches.length;
+            analysisWordsToReview.textContent = reviewWords.length;
+
+            // Calculate overall accuracy
+            let totalCorrect = 0;
+            let totalQuestions = 0;
+
+            Object.keys(batchPerformance).forEach(batch => {
+                totalCorrect += batchPerformance[batch].correct || 0;
+                totalQuestions += batchPerformance[batch].total || 0;
+            });
+
+            // Add current batch progress if not completed
+            if (!completedBatches.includes(currentBatch) && totalAnswered > 0) {
+                totalCorrect += correctAnswers;
+                totalQuestions += totalAnswered;
             }
 
-            return incorrectOptions;
+            const overallAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+            analysisOverallAccuracy.textContent = `${overallAccuracy}%`;
+
+            // Update batch performance
+            updateBatchPerformanceDisplay();
+
+            // Update weak words list
+            updateWeakWordsList();
+        }
+
+        // Update batch performance display
+        function updateBatchPerformanceDisplay() {
+            const totalBatches = Math.ceil(originalWords.length / batchSize);
+            batchPerformanceEl.innerHTML = '';
+
+            for (let i = 0; i < totalBatches; i++) {
+                const batchItem = document.createElement('div');
+                batchItem.className = 'batch-performance-item';
+
+                // Determine batch status
+                if (i === currentBatch) {
+                    batchItem.classList.add('current');
+                } else if (completedBatches.includes(i)) {
+                    batchItem.classList.add('completed');
+                } else if (i < currentBatch) {
+                    batchItem.classList.add('in-progress');
+                } else {
+                    batchItem.classList.add('not-started');
+                }
+
+                // Batch number
+                const batchNumber = document.createElement('div');
+                batchNumber.className = 'batch-number';
+                batchNumber.textContent = `Batch ${i + 1}`;
+
+                // Accuracy
+                const accuracy = document.createElement('div');
+                accuracy.className = 'batch-accuracy';
+
+                if (batchPerformance[i]) {
+                    accuracy.textContent = `${batchPerformance[i].accuracy}%`;
+                    accuracy.style.color = getAccuracyColor(batchPerformance[i].accuracy);
+                } else if (i === currentBatch && totalAnswered > 0) {
+                    const currentAccuracy = Math.round((correctAnswers / totalAnswered) * 100);
+                    accuracy.textContent = `${currentAccuracy}%`;
+                    accuracy.style.color = getAccuracyColor(currentAccuracy);
+                } else {
+                    accuracy.textContent = '-';
+                    accuracy.style.color = 'var(--text-secondary)';
+                }
+
+                // Stats
+                const stats = document.createElement('div');
+                stats.className = 'batch-stats';
+
+                if (batchPerformance[i]) {
+                    stats.textContent = `${batchPerformance[i].correct}/${batchPerformance[i].total}`;
+                } else if (i === currentBatch) {
+                    stats.textContent = `${correctAnswers}/${totalAnswered}`;
+                } else {
+                    stats.textContent = '0/0';
+                }
+
+                batchItem.appendChild(batchNumber);
+                batchItem.appendChild(accuracy);
+                batchItem.appendChild(stats);
+
+                // Click to navigate to batch
+                batchItem.addEventListener('click', () => {
+                    if (i !== currentBatch) {
+                        currentBatch = i;
+                        resetCurrentBatch();
+                        loadCurrentBatch();
+                        generateQuestion();
+                        updateUI();
+                        updateBatchNavigation();
+                        hideAnalysisModal();
+                        saveProgress();
+                    }
+                });
+
+                batchPerformanceEl.appendChild(batchItem);
+            }
+        }
+
+        // Get color based on accuracy
+        function getAccuracyColor(accuracy) {
+            if (accuracy >= 80) return 'var(--success)';
+            if (accuracy >= 60) return 'var(--warning)';
+            return 'var(--error)';
+        }
+
+        // Update weak words list
+        function updateWeakWordsList() {
+            weakWordsList.innerHTML = '';
+
+            if (wrongAnswers.length === 0 && reviewWords.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = 'No words need practice yet!';
+                emptyMessage.style.textAlign = 'center';
+                emptyMessage.style.padding = '20px';
+                emptyMessage.style.color = 'var(--text-secondary)';
+                weakWordsList.appendChild(emptyMessage);
+                return;
+            }
+
+            // Create a map of words and their error counts
+            const wordErrors = new Map();
+
+            // Count errors from wrongAnswers
+            wrongAnswers.forEach(wrong => {
+                const chinese = wrong.word.chinese;
+                if (!wordErrors.has(chinese)) {
+                    wordErrors.set(chinese, {
+                        word: wrong.word,
+                        errorCount: 0,
+                        totalSeen: 0
+                    });
+                }
+                wordErrors.get(chinese).errorCount++;
+            });
+
+            // Add review words with at least 1 error
+            reviewWords.forEach(word => {
+                const chinese = word.chinese;
+                if (!wordErrors.has(chinese)) {
+                    wordErrors.set(chinese, {
+                        word: word,
+                        errorCount: 1,
+                        totalSeen: 1
+                    });
+                }
+            });
+
+            // Convert to array and sort by error count (descending)
+            const weakWordsArray = Array.from(wordErrors.values())
+                .sort((a, b) => b.errorCount - a.errorCount)
+                .slice(0, 10); // Show top 10 weak words
+
+            weakWordsArray.forEach(wordData => {
+                const wordItem = document.createElement('div');
+                wordItem.className = 'weak-word-item';
+
+                const wordChinese = document.createElement('div');
+                wordChinese.className = 'weak-word-chinese';
+                wordChinese.textContent = wordData.word.chinese;
+
+                const wordStats = document.createElement('div');
+                wordStats.className = 'weak-word-stats';
+
+                // Calculate accuracy (simplified)
+                const accuracy = wordData.totalSeen > 0 ?
+                    Math.round((1 - (wordData.errorCount / wordData.totalSeen)) * 100) : 0;
+
+                wordStats.innerHTML = `
+                    <span class="weak-word-accuracy">${accuracy}% accuracy</span>
+                    <br>${wordData.errorCount} error${wordData.errorCount !== 1 ? 's' : ''}
+                `;
+
+                wordItem.appendChild(wordChinese);
+                wordItem.appendChild(wordStats);
+                weakWordsList.appendChild(wordItem);
+            });
+        }
+
+        // Export analysis data
+        function exportAnalysisData() {
+            const analysisData = {
+                timestamp: new Date().toISOString(),
+                totalBatches: Math.ceil(originalWords.length / batchSize),
+                completedBatches: completedBatches.length,
+                batchPerformance: batchPerformance,
+                reviewWordsCount: reviewWords.length,
+                weakWords: Array.from(new Set(wrongAnswers.map(w => w.word.chinese).concat(reviewWords.map(w => w.chinese))))
+            };
+
+            const dataStr = JSON.stringify(analysisData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `hsk-quiz-analysis-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== EXISTING APP FUNCTIONS (UPDATED) ====================
+
+        // Show error message
+        function showError(message) {
+            loadingScreen.style.display = 'none';
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Hide loading screen and show main content
+        function showMainContent() {
+            loadingScreen.style.display = 'none';
+            mainContainer.style.display = 'block';
+        }
+
+        // Theme management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('hsk-theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('hsk-theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            themeToggle.addEventListener('click', toggleTheme);
+
+            // Batch size buttons
+            document.querySelectorAll('.batch-btn').forEach(btn => {
+                btn.addEventListener('click', () => changeBatchSize(btn.dataset.size));
+            });
+
+            // Mode buttons
+            document.getElementById('mode-pinyin').addEventListener('click', () => switchMode(true));
+            document.getElementById('mode-english').addEventListener('click', () => switchMode(false));
+
+            // Review buttons
+            reviewWrongBtn.addEventListener('click', showReviewSection);
+            closeReviewBtn.addEventListener('click', hideReviewSection);
+            practiceReviewBtn.addEventListener('click', startReviewSession);
+
+            // Completion screen buttons
+            completionReviewBtn.addEventListener('click', showReviewSection);
+            completionNextBatchBtn.addEventListener('click', startNextBatch);
+
+            // Batch navigation
+            prevBatchBtn.addEventListener('click', goToPreviousBatch);
+            nextBatchBtn.addEventListener('click', goToNextBatch);
+
+            // Progress overview
+            progressOverviewBtn.addEventListener('click', showProgressOverview);
+            closeProgressBtn.addEventListener('click', hideProgressOverview);
+
+            // Save progress button
+            saveProgressBtn.addEventListener('click', saveProgress);
+
+            // Share progress button
+            shareProgressBtn.addEventListener('click', showShareModal);
+            closeShareBtn.addEventListener('click', hideShareModal);
+            copyUrlBtn.addEventListener('click', copyShareUrl);
+
+            // Analysis buttons
+            analysisBtn.addEventListener('click', showAnalysisModal);
+            closeAnalysisBtn.addEventListener('click', hideAnalysisModal);
+            exportAnalysisBtn.addEventListener('click', exportAnalysisData);
+
+            // Keyboard controls
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        // Change batch size
+        function changeBatchSize(size) {
+            document.querySelectorAll('.batch-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.size === size);
+            });
+
+            batchSize = size === 'all' ? originalWords.length : parseInt(size);
+            currentBatch = 0;
+            resetCurrentBatch();
+            loadCurrentBatch();
+            generateQuestion();
+            updateUI();
+            updateBatchNavigation();
+            saveProgress();
+        }
+
+        // Switch between pinyin and english mode
+        function switchMode(pinyinMode) {
+            isPinyinMode = pinyinMode;
+            document.getElementById('mode-pinyin').classList.toggle('active', pinyinMode);
+            document.getElementById('mode-english').classList.toggle('active', !pinyinMode);
+            generateQuestion();
+            saveProgress();
         }
 
         // Select an option
@@ -1665,14 +1869,6 @@
             const totalWords = isReviewMode ? reviewWords.length : currentBatchWords.length;
             const progress = Math.min(((currentIndex) / totalWords) * 100, 100);
             progressBar.style.width = `${progress}%`;
-        }
-
-        // Load current batch words
-        function loadCurrentBatch() {
-            const startIdx = currentBatch * batchSize;
-            const endIdx = Math.min(startIdx + batchSize, originalWords.length);
-            currentBatchWords = originalWords.slice(startIdx, endIdx);
-            shuffleArray(currentBatchWords);
         }
 
         // Reset current batch
@@ -1954,6 +2150,286 @@
             }
         }
 
+        // ==================== COMPRESSION FUNCTIONS ====================
+
+        // Convert legacy progress data to optimized format (v2)
+        function convertToOptimizedFormat(legacyData) {
+            try {
+                const data = typeof legacyData === 'string' ? JSON.parse(legacyData) : legacyData;
+
+                // Create optimized structure with shorter keys
+                const optimized = {
+                    v: 2, // version flag
+                    b: data.currentBatch || 0,
+                    s: data.batchSize || 50,
+                    i: data.currentIndex || 0,
+                    c: data.correctAnswers || 0,
+                    t: data.totalAnswered || 0,
+                    p: data.isPinyinMode !== false,
+                    m: data.isReviewMode || false,
+                    // Store only Chinese characters for review words
+                    r: (data.reviewWords || []).map(w => w.chinese),
+                    d: data.completedBatches || [],
+                    // Wrong answers - keep all but use shorter structure
+                    w: (data.wrongAnswers || []).map(wa => ({
+                        c: wa.word.chinese,
+                        s: wa.selectedAnswer,
+                        a: wa.correctAnswer
+                    })),
+                    // Batch performance with shorter keys
+                    bp: {},
+                    ts: Date.now(),
+                    tw: data.totalWordsCount || originalWords.length
+                };
+
+                // Optimize batch performance data
+                if (data.batchPerformance) {
+                    Object.keys(data.batchPerformance).forEach(batch => {
+                        const perf = data.batchPerformance[batch];
+                        optimized.bp[batch] = {
+                            c: perf.correct || 0,
+                            t: perf.total || 0,
+                            a: perf.accuracy || 0
+                        };
+                    });
+                }
+
+                return JSON.stringify(optimized);
+            } catch (error) {
+                console.error('Error converting to optimized format:', error);
+                return legacyData; // Fallback to original data
+            }
+        }
+
+        // Convert optimized format back to legacy format for loading
+        function convertToLegacyFormat(optimizedData, originalWords) {
+            try {
+                const data = typeof optimizedData === 'string' ? JSON.parse(optimizedData) : optimizedData;
+
+                if (data.v !== 2) {
+                    return JSON.stringify(data); // Already in legacy format
+                }
+
+                // Reconstruct full objects from Chinese characters
+                const legacy = {
+                    currentBatch: data.b || 0,
+                    batchSize: data.s || 50,
+                    currentIndex: data.i || 0,
+                    correctAnswers: data.c || 0,
+                    totalAnswered: data.t || 0,
+                    isPinyinMode: data.p !== false,
+                    isReviewMode: data.m || false,
+                    // Reconstruct reviewWords with full objects
+                    reviewWords: (data.r || []).map(chinese =>
+                        originalWords.find(w => w.chinese === chinese) || { chinese }
+                    ).filter(w => w.chinese),
+                    completedBatches: data.d || [],
+                    // Reconstruct wrongAnswers with full objects
+                    wrongAnswers: (data.w || []).map(wa => {
+                        const word = originalWords.find(w => w.chinese === wa.c) || { chinese: wa.c };
+                        return {
+                            word: word,
+                            selectedAnswer: wa.s,
+                            correctAnswer: wa.a
+                        };
+                    }),
+                    batchPerformance: {},
+                    totalWordsCount: data.tw || originalWords.length
+                };
+
+                // Reconstruct batch performance
+                if (data.bp) {
+                    Object.keys(data.bp).forEach(batch => {
+                        const perf = data.bp[batch];
+                        legacy.batchPerformance[batch] = {
+                            correct: perf.c || 0,
+                            total: perf.t || 0,
+                            accuracy: perf.a || 0
+                        };
+                    });
+                }
+
+                return JSON.stringify(legacy);
+            } catch (error) {
+                console.error('Error converting to legacy format:', error);
+                return JSON.stringify(optimizedData); // Fallback
+            }
+        }
+
+        // Detect data format version
+        function detectDataFormat(data) {
+            try {
+                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                return parsed.v === 2 ? 'optimized' : 'legacy';
+            } catch (error) {
+                return 'legacy'; // Assume legacy format on error
+            }
+        }
+
+        // UTF-8 safe encoding/decoding functions
+        function encodeUTF8(str) {
+            try {
+                if (typeof TextEncoder !== 'undefined') {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(str);
+                    return btoa(String.fromCharCode(...data));
+                }
+            } catch (e) {
+                console.log('TextEncoder not available, using fallback');
+            }
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function decodeUTF8(str) {
+            try {
+                if (typeof TextDecoder !== 'undefined') {
+                    const binaryStr = atob(str);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    const decoder = new TextDecoder();
+                    return decoder.decode(bytes);
+                }
+            } catch (e) {
+                console.log('TextDecoder not available, using fallback');
+            }
+            return decodeURIComponent(escape(atob(str)));
+        }
+
+        // Updated share progress function with compression
+        function showShareModal() {
+            const progressData = localStorage.getItem('hskQuizProgress');
+            if (!progressData) {
+                alert('No progress to share! Complete some questions first.');
+                return;
+            }
+
+            try {
+                // Convert to optimized format for sharing (regardless of current format)
+                const optimizedData = convertToOptimizedFormat(progressData);
+
+                // Compress using LZ-String
+                const compressedData = LZString.compressToBase64(optimizedData)
+                    .replace(/\+/g, '-')  // URL-safe replacements
+                    .replace(/\//g, '_')
+                    .replace(/=+$/, '');   // Remove padding
+
+                const shareUrl = `${window.location.origin}${window.location.pathname}?p=${compressedData}`;
+
+                // Display URL
+                shareUrlEl.textContent = shareUrl;
+
+                // Generate QR code
+                generateQRCode(shareUrl);
+
+                // Show modal
+                shareModal.style.display = 'flex';
+            } catch (error) {
+                console.error('Error generating share URL:', error);
+                // Fallback to old method without compression
+                try {
+                    const encodedData = encodeUTF8(progressData).replace(/=/g, '');
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?progress=${encodedData}`;
+                    shareUrlEl.textContent = shareUrl;
+                    generateQRCode(shareUrl);
+                    shareModal.style.display = 'flex';
+                } catch (fallbackError) {
+                    alert('Error generating share URL. Please try again.');
+                }
+            }
+        }
+
+        // Updated load progress from URL function with decompression and format detection
+        function loadProgressFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Try new compressed format first
+            let progressParam = urlParams.get('p');
+            if (progressParam) {
+                try {
+                    // Add padding back if needed
+                    let data = progressParam.replace(/-/g, '+').replace(/_/g, '/');
+                    while (data.length % 4) {
+                        data += '=';
+                    }
+
+                    // Decompress
+                    const decompressedData = LZString.decompressFromBase64(data);
+                    if (!decompressedData) {
+                        throw new Error('Decompression failed');
+                    }
+
+                    // Detect format and convert to legacy if needed
+                    const format = detectDataFormat(decompressedData);
+                    let progressData;
+
+                    if (format === 'optimized') {
+                        progressData = convertToLegacyFormat(decompressedData, originalWords);
+                    } else {
+                        progressData = decompressedData;
+                    }
+
+                    if (progressData && confirm('Load progress from URL? This will replace your current progress.')) {
+                        localStorage.setItem('hskQuizProgress', progressData);
+                        // Clean URL
+                        window.history.replaceState({}, '', window.location.pathname);
+                        alert('Progress loaded successfully! Page will reload.');
+                        location.reload();
+                    }
+                } catch (e) {
+                    console.error('Error loading compressed progress from URL:', e);
+                }
+            }
+
+            // Fallback to old format (for backward compatibility with old shares)
+            else {
+                const progressParam = urlParams.get('progress');
+                if (progressParam) {
+                    try {
+                        // Add padding if needed
+                        let data = progressParam;
+                        while (data.length % 4) {
+                            data += '=';
+                        }
+
+                        const progressData = decodeUTF8(data);
+
+                        if (progressData && confirm('Load progress from URL? This will replace your current progress.')) {
+                            localStorage.setItem('hskQuizProgress', progressData);
+                            // Clean URL
+                            window.history.replaceState({}, '', window.location.pathname);
+                            alert('Progress loaded successfully! Page will reload.');
+                            location.reload();
+                        }
+                    } catch (e) {
+                        console.error('Error loading progress from URL:', e);
+                    }
+                }
+            }
+        }
+
+        // Updated QR code generation for smaller codes
+        function generateQRCode(text) {
+            qrCodeContainer.innerHTML = '';
+
+            try {
+                // Use lower error correction for smaller QR codes
+                const typeNumber = 0;
+                const errorCorrectionLevel = 'L'; // Low error correction = smaller code
+                const qr = qrcode(typeNumber, errorCorrectionLevel);
+                qr.addData(text);
+                qr.make();
+
+                // Create smaller QR code
+                const qrImage = qr.createImgTag(3, 0); // Reduced from 4 to 3
+                qrCodeContainer.innerHTML = qrImage;
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                qrCodeContainer.innerHTML = '<p style="color: var(--error);">QR code generation failed</p>';
+            }
+        }
+
         function hideShareModal() {
             shareModal.style.display = 'none';
         }
@@ -1991,7 +2467,7 @@
             }
         }
 
-        // Shuffle array
+        // Shuffle array (kept for potential future use, but not used in current implementation)
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
