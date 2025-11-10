@@ -7,6 +7,7 @@
     <!-- QR Code Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <style>
+        /* Your existing CSS remains exactly the same */
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
@@ -940,9 +941,25 @@
         // Load vocabulary from JSON file
         async function loadVocabulary() {
             try {
-                const response = await fetch('./vocabulary.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                // Try multiple possible paths for GitHub Pages
+                const possiblePaths = [
+                    './vocabulary.json',
+                    '/hsk-quiz/vocabulary.json',
+                    'vocabulary.json'
+                ];
+
+                let response;
+                for (const path of possiblePaths) {
+                    try {
+                        response = await fetch(path);
+                        if (response.ok) break;
+                    } catch (e) {
+                        console.log(`Failed to load from ${path}, trying next...`);
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error(`HTTP error! status: ${response ? response.status : 'unknown'}`);
                 }
 
                 const data = await response.json();
@@ -977,7 +994,7 @@
                 return true;
             } catch (error) {
                 console.error('Failed to load vocabulary:', error);
-                showError(`Failed to load vocabulary: ${error.message}`);
+                showError(`Failed to load vocabulary: ${error.message}. Please check that vocabulary.json exists.`);
                 return false;
             }
         }
@@ -1176,45 +1193,88 @@
             saveProgress();
         }
 
-        // Generate question and options
+        // Generate question and options with error handling
         function generateQuestion() {
-            if (currentIndex >= currentBatchWords.length) {
-                // Batch complete
-                showCompletionScreen();
-                return;
+            try {
+                const totalWords = isReviewMode ? reviewWords.length : currentBatchWords.length;
+
+                // Safety check - if no words available, reset
+                if (totalWords === 0) {
+                    console.warn('No words available for current mode, resetting...');
+                    if (isReviewMode) {
+                        // If in review mode but no review words, switch back to normal mode
+                        isReviewMode = false;
+                        resetCurrentBatch();
+                        loadCurrentBatch();
+                    } else {
+                        // If in normal mode but no words, reset batch
+                        resetCurrentBatch();
+                        loadCurrentBatch();
+                    }
+                    // Try again
+                    generateQuestion();
+                    return;
+                }
+
+                // Check if we've completed all questions
+                if (currentIndex >= totalWords) {
+                    showCompletionScreen();
+                    return;
+                }
+
+                // Get current word with safety check
+                let currentWord;
+                if (isReviewMode) {
+                    currentWord = reviewWords[currentIndex];
+                } else {
+                    currentWord = currentBatchWords[currentIndex];
+                }
+
+                // Validate current word
+                if (!currentWord || !currentWord.chinese) {
+                    console.error('Invalid current word:', currentWord);
+                    // Move to next question and try again
+                    currentIndex++;
+                    generateQuestion();
+                    return;
+                }
+
+                questionEl.textContent = currentWord.chinese;
+                feedbackEl.textContent = '';
+                feedbackEl.className = 'feedback';
+
+                // Reset options
+                optionsEl.innerHTML = '';
+
+                // Create correct option
+                const correctOption = document.createElement('div');
+                correctOption.className = 'option';
+                correctOption.dataset.correct = 'true';
+                correctOption.textContent = isPinyinMode
+                    ? `${currentWord.pinyin} - ${currentWord.english}`
+                    : currentWord.english;
+
+                // Create incorrect options using similar words
+                const incorrectOptions = generateIncorrectOptions(currentWord);
+
+                // Combine and shuffle options
+                const allOptions = [correctOption, ...incorrectOptions];
+                shuffleArray(allOptions);
+
+                // Add options to DOM
+                allOptions.forEach((option) => {
+                    option.addEventListener('click', selectOption);
+                    optionsEl.appendChild(option);
+                });
+
+                selectedOption = null;
+                updateUI();
+            } catch (error) {
+                console.error('Error generating question:', error);
+                questionEl.textContent = 'Error loading question';
+                feedbackEl.textContent = 'Please refresh the page';
+                feedbackEl.className = 'feedback incorrect';
             }
-
-            const currentWord = isReviewMode ? reviewWords[currentIndex] : currentBatchWords[currentIndex];
-            questionEl.textContent = currentWord.chinese;
-            feedbackEl.textContent = '';
-            feedbackEl.className = 'feedback';
-
-            // Reset options
-            optionsEl.innerHTML = '';
-
-            // Create correct option
-            const correctOption = document.createElement('div');
-            correctOption.className = 'option';
-            correctOption.dataset.correct = 'true';
-            correctOption.textContent = isPinyinMode
-                ? `${currentWord.pinyin} - ${currentWord.english}`
-                : currentWord.english;
-
-            // Create incorrect options using similar words
-            const incorrectOptions = generateIncorrectOptions(currentWord);
-
-            // Combine and shuffle options
-            const allOptions = [correctOption, ...incorrectOptions];
-            shuffleArray(allOptions);
-
-            // Add options to DOM
-            allOptions.forEach((option) => {
-                option.addEventListener('click', selectOption);
-                optionsEl.appendChild(option);
-            });
-
-            selectedOption = null;
-            updateUI();
         }
 
         // Generate incorrect options using similar words
@@ -1597,25 +1657,28 @@
             localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
         }
 
-        // Load progress from localStorage
+        // Load progress from localStorage with data validation
         function loadProgress() {
             const savedProgress = localStorage.getItem('hskQuizProgress');
             if (savedProgress) {
                 try {
                     const progress = JSON.parse(savedProgress);
 
-                    currentBatch = progress.currentBatch || 0;
-                    batchSize = progress.batchSize || 50;
-                    currentIndex = progress.currentIndex || 0;
-                    correctAnswers = progress.correctAnswers || 0;
-                    totalAnswered = progress.totalAnswered || 0;
-                    wrongAnswers = progress.wrongAnswers || [];
-                    isPinyinMode = progress.isPinyinMode !== undefined ? progress.isPinyinMode : true;
-                    isReviewMode = progress.isReviewMode || false;
-                    reviewWords = progress.reviewWords || [];
-                    completedBatches = progress.completedBatches || [];
-                    batchPerformance = progress.batchPerformance || {};
-                    totalWordsCount = progress.totalWordsCount || originalWords.length;
+                    // Validate and set each property with fallbacks
+                    currentBatch = Math.max(0, parseInt(progress.currentBatch) || 0);
+                    batchSize = Math.max(1, parseInt(progress.batchSize) || 50);
+                    currentIndex = Math.max(0, parseInt(progress.currentIndex) || 0);
+                    correctAnswers = Math.max(0, parseInt(progress.correctAnswers) || 0);
+                    totalAnswered = Math.max(0, parseInt(progress.totalAnswered) || 0);
+
+                    // Validate arrays and objects
+                    wrongAnswers = Array.isArray(progress.wrongAnswers) ? progress.wrongAnswers : [];
+                    isPinyinMode = typeof progress.isPinyinMode === 'boolean' ? progress.isPinyinMode : true;
+                    isReviewMode = typeof progress.isReviewMode === 'boolean' ? progress.isReviewMode : false;
+                    reviewWords = Array.isArray(progress.reviewWords) ? progress.reviewWords : [];
+                    completedBatches = Array.isArray(progress.completedBatches) ? progress.completedBatches : [];
+                    batchPerformance = typeof progress.batchPerformance === 'object' ? progress.batchPerformance : {};
+                    totalWordsCount = Math.max(0, parseInt(progress.totalWordsCount) || originalWords.length);
 
                     // Update UI based on loaded progress
                     document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
@@ -1625,12 +1688,21 @@
                         reviewWrongBtn.style.display = 'block';
                     }
 
+                    // Safety check: if in review mode but no review words, switch back to normal mode
+                    if (isReviewMode && reviewWords.length === 0) {
+                        isReviewMode = false;
+                        currentIndex = 0;
+                    }
+
                     loadCurrentBatch();
                     updateUI();
                     updateBatchNavigation();
 
                 } catch (e) {
                     console.error('Error loading saved progress:', e);
+                    // If there's an error loading progress, reset to default state
+                    resetCurrentBatch();
+                    loadCurrentBatch();
                 }
             }
         }
