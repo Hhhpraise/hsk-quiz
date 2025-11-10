@@ -6,6 +6,8 @@
     <title>HSK 5 Vocabulary Quiz</title>
     <!-- QR Code Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <!-- LZ-String Compression Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         /* Your existing CSS remains exactly the same */
         :root {
@@ -901,10 +903,125 @@
         const copyUrlBtn = document.getElementById('copy-url-btn');
         const qrCodeContainer = document.getElementById('qr-code');
 
+        // ==================== COMPRESSION FUNCTIONS ====================
+
+        // Convert legacy progress data to optimized format (v2)
+        function convertToOptimizedFormat(legacyData) {
+            try {
+                const data = typeof legacyData === 'string' ? JSON.parse(legacyData) : legacyData;
+
+                // Create optimized structure with shorter keys
+                const optimized = {
+                    v: 2, // version flag
+                    b: data.currentBatch || 0,
+                    s: data.batchSize || 50,
+                    i: data.currentIndex || 0,
+                    c: data.correctAnswers || 0,
+                    t: data.totalAnswered || 0,
+                    p: data.isPinyinMode !== false,
+                    m: data.isReviewMode || false,
+                    // Store only Chinese characters for review words
+                    r: (data.reviewWords || []).map(w => w.chinese),
+                    d: data.completedBatches || [],
+                    // Wrong answers - keep all but use shorter structure
+                    w: (data.wrongAnswers || []).map(wa => ({
+                        c: wa.word.chinese,
+                        s: wa.selectedAnswer,
+                        a: wa.correctAnswer
+                    })),
+                    // Batch performance with shorter keys
+                    bp: {},
+                    ts: Date.now(),
+                    tw: data.totalWordsCount || originalWords.length
+                };
+
+                // Optimize batch performance data
+                if (data.batchPerformance) {
+                    Object.keys(data.batchPerformance).forEach(batch => {
+                        const perf = data.batchPerformance[batch];
+                        optimized.bp[batch] = {
+                            c: perf.correct || 0,
+                            t: perf.total || 0,
+                            a: perf.accuracy || 0
+                        };
+                    });
+                }
+
+                return JSON.stringify(optimized);
+            } catch (error) {
+                console.error('Error converting to optimized format:', error);
+                return legacyData; // Fallback to original data
+            }
+        }
+
+        // Convert optimized format back to legacy format for loading
+        function convertToLegacyFormat(optimizedData, originalWords) {
+            try {
+                const data = typeof optimizedData === 'string' ? JSON.parse(optimizedData) : optimizedData;
+
+                if (data.v !== 2) {
+                    return JSON.stringify(data); // Already in legacy format
+                }
+
+                // Reconstruct full objects from Chinese characters
+                const legacy = {
+                    currentBatch: data.b || 0,
+                    batchSize: data.s || 50,
+                    currentIndex: data.i || 0,
+                    correctAnswers: data.c || 0,
+                    totalAnswered: data.t || 0,
+                    isPinyinMode: data.p !== false,
+                    isReviewMode: data.m || false,
+                    // Reconstruct reviewWords with full objects
+                    reviewWords: (data.r || []).map(chinese =>
+                        originalWords.find(w => w.chinese === chinese) || { chinese }
+                    ).filter(w => w.chinese),
+                    completedBatches: data.d || [],
+                    // Reconstruct wrongAnswers with full objects
+                    wrongAnswers: (data.w || []).map(wa => {
+                        const word = originalWords.find(w => w.chinese === wa.c) || { chinese: wa.c };
+                        return {
+                            word: word,
+                            selectedAnswer: wa.s,
+                            correctAnswer: wa.a
+                        };
+                    }),
+                    batchPerformance: {},
+                    totalWordsCount: data.tw || originalWords.length
+                };
+
+                // Reconstruct batch performance
+                if (data.bp) {
+                    Object.keys(data.bp).forEach(batch => {
+                        const perf = data.bp[batch];
+                        legacy.batchPerformance[batch] = {
+                            correct: perf.c || 0,
+                            total: perf.t || 0,
+                            accuracy: perf.a || 0
+                        };
+                    });
+                }
+
+                return JSON.stringify(legacy);
+            } catch (error) {
+                console.error('Error converting to legacy format:', error);
+                return JSON.stringify(optimizedData); // Fallback
+            }
+        }
+
+        // Detect data format version
+        function detectDataFormat(data) {
+            try {
+                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                return parsed.v === 2 ? 'optimized' : 'legacy';
+            } catch (error) {
+                return 'legacy'; // Assume legacy format on error
+            }
+        }
+
         // UTF-8 safe encoding/decoding functions
         function encodeUTF8(str) {
             try {
-                // First try the modern TextEncoder API
                 if (typeof TextEncoder !== 'undefined') {
                     const encoder = new TextEncoder();
                     const data = encoder.encode(str);
@@ -913,14 +1030,11 @@
             } catch (e) {
                 console.log('TextEncoder not available, using fallback');
             }
-
-            // Fallback for older browsers
             return btoa(unescape(encodeURIComponent(str)));
         }
 
         function decodeUTF8(str) {
             try {
-                // First try the modern TextDecoder API
                 if (typeof TextDecoder !== 'undefined') {
                     const binaryStr = atob(str);
                     const bytes = new Uint8Array(binaryStr.length);
@@ -933,10 +1047,143 @@
             } catch (e) {
                 console.log('TextDecoder not available, using fallback');
             }
-
-            // Fallback for older browsers
             return decodeURIComponent(escape(atob(str)));
         }
+
+        // Updated share progress function with compression
+        function showShareModal() {
+            const progressData = localStorage.getItem('hskQuizProgress');
+            if (!progressData) {
+                alert('No progress to share! Complete some questions first.');
+                return;
+            }
+
+            try {
+                // Convert to optimized format for sharing (regardless of current format)
+                const optimizedData = convertToOptimizedFormat(progressData);
+
+                // Compress using LZ-String
+                const compressedData = LZString.compressToBase64(optimizedData)
+                    .replace(/\+/g, '-')  // URL-safe replacements
+                    .replace(/\//g, '_')
+                    .replace(/=+$/, '');   // Remove padding
+
+                const shareUrl = `${window.location.origin}${window.location.pathname}?p=${compressedData}`;
+
+                // Display URL
+                shareUrlEl.textContent = shareUrl;
+
+                // Generate QR code
+                generateQRCode(shareUrl);
+
+                // Show modal
+                shareModal.style.display = 'flex';
+            } catch (error) {
+                console.error('Error generating share URL:', error);
+                // Fallback to old method without compression
+                try {
+                    const encodedData = encodeUTF8(progressData).replace(/=/g, '');
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?progress=${encodedData}`;
+                    shareUrlEl.textContent = shareUrl;
+                    generateQRCode(shareUrl);
+                    shareModal.style.display = 'flex';
+                } catch (fallbackError) {
+                    alert('Error generating share URL. Please try again.');
+                }
+            }
+        }
+
+        // Updated load progress from URL function with decompression and format detection
+        function loadProgressFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Try new compressed format first
+            let progressParam = urlParams.get('p');
+            if (progressParam) {
+                try {
+                    // Add padding back if needed
+                    let data = progressParam.replace(/-/g, '+').replace(/_/g, '/');
+                    while (data.length % 4) {
+                        data += '=';
+                    }
+
+                    // Decompress
+                    const decompressedData = LZString.decompressFromBase64(data);
+                    if (!decompressedData) {
+                        throw new Error('Decompression failed');
+                    }
+
+                    // Detect format and convert to legacy if needed
+                    const format = detectDataFormat(decompressedData);
+                    let progressData;
+
+                    if (format === 'optimized') {
+                        progressData = convertToLegacyFormat(decompressedData, originalWords);
+                    } else {
+                        progressData = decompressedData;
+                    }
+
+                    if (progressData && confirm('Load progress from URL? This will replace your current progress.')) {
+                        localStorage.setItem('hskQuizProgress', progressData);
+                        // Clean URL
+                        window.history.replaceState({}, '', window.location.pathname);
+                        alert('Progress loaded successfully! Page will reload.');
+                        location.reload();
+                    }
+                } catch (e) {
+                    console.error('Error loading compressed progress from URL:', e);
+                }
+            }
+
+            // Fallback to old format (for backward compatibility with old shares)
+            else {
+                const progressParam = urlParams.get('progress');
+                if (progressParam) {
+                    try {
+                        // Add padding if needed
+                        let data = progressParam;
+                        while (data.length % 4) {
+                            data += '=';
+                        }
+
+                        const progressData = decodeUTF8(data);
+
+                        if (progressData && confirm('Load progress from URL? This will replace your current progress.')) {
+                            localStorage.setItem('hskQuizProgress', progressData);
+                            // Clean URL
+                            window.history.replaceState({}, '', window.location.pathname);
+                            alert('Progress loaded successfully! Page will reload.');
+                            location.reload();
+                        }
+                    } catch (e) {
+                        console.error('Error loading progress from URL:', e);
+                    }
+                }
+            }
+        }
+
+        // Updated QR code generation for smaller codes
+        function generateQRCode(text) {
+            qrCodeContainer.innerHTML = '';
+
+            try {
+                // Use lower error correction for smaller QR codes
+                const typeNumber = 0;
+                const errorCorrectionLevel = 'L'; // Low error correction = smaller code
+                const qr = qrcode(typeNumber, errorCorrectionLevel);
+                qr.addData(text);
+                qr.make();
+
+                // Create smaller QR code
+                const qrImage = qr.createImgTag(3, 0); // Reduced from 4 to 3
+                qrCodeContainer.innerHTML = qrImage;
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                qrCodeContainer.innerHTML = '<p style="color: var(--error);">QR code generation failed</p>';
+            }
+        }
+
+        // ==================== EXISTING APP FUNCTIONS ====================
 
         // Load vocabulary from JSON file
         async function loadVocabulary() {
@@ -1707,33 +1954,6 @@
             }
         }
 
-        // Share progress via URL
-        function showShareModal() {
-            const progressData = localStorage.getItem('hskQuizProgress');
-            if (!progressData) {
-                alert('No progress to share! Complete some questions first.');
-                return;
-            }
-
-            try {
-                // Generate shareable URL using UTF-8 safe encoding
-                const encodedData = encodeUTF8(progressData).replace(/=/g, '');
-                const shareUrl = `${window.location.origin}${window.location.pathname}?progress=${encodedData}`;
-
-                // Display URL
-                shareUrlEl.textContent = shareUrl;
-
-                // Generate QR code using external library
-                generateQRCode(shareUrl);
-
-                // Show modal
-                shareModal.style.display = 'flex';
-            } catch (error) {
-                console.error('Error generating share URL:', error);
-                alert('Error generating share URL. Please try again.');
-            }
-        }
-
         function hideShareModal() {
             shareModal.style.display = 'none';
         }
@@ -1758,57 +1978,6 @@
                     copyUrlBtn.textContent = 'Copy URL';
                 }, 2000);
             });
-        }
-
-        // Generate QR Code using external library
-        function generateQRCode(text) {
-            // Clear previous QR code
-            qrCodeContainer.innerHTML = '';
-
-            try {
-                // Use the qrcode-generator library
-                const typeNumber = 0; // Auto detect type
-                const errorCorrectionLevel = 'L';
-                const qr = qrcode(typeNumber, errorCorrectionLevel);
-                qr.addData(text);
-                qr.make();
-
-                // Create QR code image
-                const qrImage = qr.createImgTag(4, 0);
-                qrCodeContainer.innerHTML = qrImage;
-            } catch (error) {
-                console.error('Error generating QR code:', error);
-                qrCodeContainer.innerHTML = '<p style="color: var(--error);">QR code generation failed</p>';
-            }
-        }
-
-        // Load progress from URL
-        function loadProgressFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const progressParam = urlParams.get('progress');
-
-            if (progressParam) {
-                try {
-                    // Add padding if needed
-                    let data = progressParam;
-                    while (data.length % 4) {
-                        data += '=';
-                    }
-
-                    const progressData = decodeUTF8(data);
-                    const progress = JSON.parse(progressData);
-
-                    if (progress && confirm('Load progress from URL? This will replace your current progress.')) {
-                        localStorage.setItem('hskQuizProgress', JSON.stringify(progress));
-                        // Clean URL
-                        window.history.replaceState({}, '', window.location.pathname);
-                        alert('Progress loaded successfully! Page will reload.');
-                        location.reload();
-                    }
-                } catch (e) {
-                    console.error('Error loading progress from URL:', e);
-                }
-            }
         }
 
         // Keyboard controls
