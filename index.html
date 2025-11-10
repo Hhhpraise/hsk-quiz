@@ -763,75 +763,76 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Responsive design */
+        /* Enhanced Mobile Responsiveness */
         @media (max-width: 768px) {
-            .subtitle {
-                display: none;
-            }
-
-            .question {
-                font-size: 2rem;
-                margin-bottom: 20px;
-            }
-
-            .option {
-                font-size: 1rem;
-                padding: 14px;
-            }
-
-            .review-list {
-                grid-template-columns: 1fr;
-            }
-
-            .top-controls {
-                flex-direction: column;
-            }
-
-            .batch-navigation {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .batch-buttons {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .analysis-content {
-                width: 95%;
-                padding: 16px;
-            }
-
-            .analysis-stats {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .batch-performance {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            }
-        }
-
-        @media (max-width: 480px) {
             .header {
-                padding: 8px 12px;
+                padding: 10px 12px;
+            }
+
+            .header-top {
+                flex-wrap: wrap;
             }
 
             .title {
+                font-size: 1.3rem;
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .theme-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+            }
+
+            .quick-stats {
+                padding: 10px 4px;
+            }
+
+            .stat-number {
                 font-size: 1.2rem;
             }
 
-            .main-content {
-                padding: 12px;
+            .stat-label {
+                font-size: 0.7rem;
+            }
+
+            .top-controls {
+                gap: 6px;
+                margin-bottom: 12px;
+            }
+
+            .control-group {
+                flex: 1;
+                min-width: 0;
+                justify-content: center;
+            }
+
+            .mode-btn, .batch-btn, .action-btn {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+                flex: 1;
+                min-width: 0;
+                text-align: center;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .question-container {
                 padding: 16px;
-                min-height: 250px;
+                min-height: 200px;
+                margin-bottom: 12px;
             }
 
             .question {
                 font-size: 1.8rem;
-                min-height: 50px;
+                min-height: 60px;
+                margin-bottom: 16px;
             }
 
             .options {
@@ -839,16 +840,58 @@
             }
 
             .option {
+                padding: 14px 12px;
+                font-size: 1rem;
+                min-height: 54px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .batch-navigation {
+                flex-direction: column;
+                gap: 12px;
+                padding: 10px;
+            }
+
+            .batch-buttons {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+            }
+
+            .batch-buttons .action-btn {
+                flex: 1;
+            }
+
+            .review-section,
+            .progress-overview {
                 padding: 12px;
-                font-size: 0.95rem;
+            }
+
+            .review-header {
+                font-size: 1.1rem;
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .review-item {
+                padding: 10px;
             }
 
             .review-chinese {
                 font-size: 1.3rem;
             }
 
-            .batch-progress {
-                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            .completion-content {
+                width: 95%;
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .completion-title {
+                font-size: 1.5rem;
             }
 
             .share-content {
@@ -856,12 +899,278 @@
                 padding: 16px;
             }
 
+            .share-title {
+                font-size: 1.3rem;
+            }
+
+            .share-url {
+                font-size: 0.8rem;
+                padding: 10px;
+            }
+
+            .qr-container {
+                padding: 10px;
+                max-width: 200px;
+                margin: 10px auto;
+            }
+
+            .analysis-content {
+                width: 98%;
+                padding: 12px;
+                margin: 10px;
+            }
+
+            .analysis-title {
+                font-size: 1.5rem;
+            }
+
+            .analysis-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .analysis-stat-card {
+                padding: 12px;
+            }
+
+            .analysis-stat-number {
+                font-size: 1.5rem;
+            }
+
+            .batch-performance {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 8px;
+            }
+
+            .batch-progress {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 6px;
+            }
+
+            .subtitle {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 8px 10px;
+            }
+
+            .title {
+                font-size: 1.1rem;
+            }
+
+            .main-content {
+                padding: 8px;
+            }
+
+            .top-controls {
+                flex-direction: column;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+
+            .mode-btn, .batch-btn, .action-btn {
+                padding: 10px 8px;
+                font-size: 0.75rem;
+                min-height: 44px;
+            }
+
+            .question-container {
+                padding: 12px;
+                min-height: 180px;
+                border-radius: 10px;
+            }
+
+            .question {
+                font-size: 1.6rem;
+                min-height: 50px;
+                margin-bottom: 12px;
+            }
+
+            .feedback {
+                font-size: 0.9rem;
+                min-height: 40px;
+                padding: 6px 8px;
+            }
+
+            .option {
+                padding: 12px 8px;
+                font-size: 0.9rem;
+                min-height: 50px;
+                border-radius: 10px;
+                font-size: 16px;
+            }
+
+            .quick-stats {
+                padding: 8px 2px;
+            }
+
+            .stat-number {
+                font-size: 1.1rem;
+            }
+
+            .stat-label {
+                font-size: 0.65rem;
+            }
+
+            .batch-navigation {
+                padding: 8px;
+            }
+
+            .batch-info {
+                font-size: 0.8rem;
+                text-align: center;
+            }
+
+            .review-section,
+            .progress-overview {
+                padding: 10px;
+            }
+
+            .review-header {
+                font-size: 1rem;
+            }
+
+            .review-chinese {
+                font-size: 1.2rem;
+            }
+
+            .review-pinyin {
+                font-size: 0.9rem;
+            }
+
+            .review-english {
+                font-size: 0.9rem;
+            }
+
+            .completion-content {
+                padding: 16px;
+            }
+
+            .completion-title {
+                font-size: 1.3rem;
+            }
+
+            .completion-stat {
+                font-size: 0.9rem;
+            }
+
             .analysis-stats {
                 grid-template-columns: 1fr;
             }
 
+            .analysis-stat-card {
+                padding: 10px;
+            }
+
+            .analysis-stat-number {
+                font-size: 1.3rem;
+            }
+
             .batch-performance {
                 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 6px;
+            }
+
+            .batch-progress {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+                gap: 4px;
+            }
+
+            .share-actions,
+            .analysis-actions,
+            .review-actions {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .share-actions .action-btn,
+            .analysis-actions .action-btn,
+            .review-actions .action-btn {
+                width: 100%;
+            }
+        }
+
+        /* Additional mobile-specific improvements */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .header {
+                padding: 6px 10px;
+            }
+
+            .title {
+                font-size: 1.1rem;
+            }
+
+            .quick-stats {
+                padding: 6px 2px;
+            }
+
+            .question-container {
+                min-height: 150px;
+                padding: 12px;
+            }
+
+            .question {
+                font-size: 1.5rem;
+                min-height: 40px;
+                margin-bottom: 10px;
+            }
+
+            .options {
+                gap: 6px;
+            }
+
+            .option {
+                padding: 10px 8px;
+                font-size: 0.85rem;
+                min-height: 44px;
+            }
+        }
+
+        /* Prevent zoom on input for iOS */
+        @media (max-width: 768px) {
+            .option {
+                font-size: 16px;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        .option {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .action-btn, .mode-btn, .batch-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Improved loading for mobile */
+        @media (max-width: 768px) {
+            .loading-text {
+                font-size: 1rem;
+                text-align: center;
+                padding: 0 20px;
+            }
+
+            .loading-spinner {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        /* Better scroll experience on mobile */
+        @media (max-width: 768px) {
+            .share-url {
+                max-height: 80px;
+            }
+
+            .analysis-content {
+                max-height: 85vh;
             }
         }
     </style>
@@ -1307,8 +1616,11 @@
 
                     const option = document.createElement('div');
                     option.className = 'option';
+
+                    // Mobile-friendly text: shorter on small screens
+                    const isMobile = window.innerWidth <= 768;
                     option.textContent = isPinyinMode
-                        ? `${similarWord.pinyin} - ${similarWord.english}`
+                        ? (isMobile ? similarWord.pinyin : `${similarWord.pinyin} - ${similarWord.english}`)
                         : similarWord.english;
 
                     incorrectOptions.push(option);
@@ -1325,8 +1637,11 @@
 
                     const option = document.createElement('div');
                     option.className = 'option';
+
+                    // Mobile-friendly text: shorter on small screens
+                    const isMobile = window.innerWidth <= 768;
                     option.textContent = isPinyinMode
-                        ? `${candidateWord.pinyin} - ${candidateWord.english}`
+                        ? (isMobile ? candidateWord.pinyin : `${candidateWord.pinyin} - ${candidateWord.english}`)
                         : candidateWord.english;
 
                     incorrectOptions.push(option);
@@ -1394,8 +1709,11 @@
                 const correctOption = document.createElement('div');
                 correctOption.className = 'option';
                 correctOption.dataset.correct = 'true';
+
+                // Mobile-friendly text: shorter on small screens
+                const isMobile = window.innerWidth <= 768;
                 correctOption.textContent = isPinyinMode
-                    ? `${currentWord.pinyin} - ${currentWord.english}`
+                    ? (isMobile ? currentWord.pinyin : `${currentWord.pinyin} - ${currentWord.english}`)
                     : currentWord.english;
 
                 // Create incorrect options using similar words (deterministic)
@@ -1408,6 +1726,8 @@
                 // Add options to DOM
                 allOptions.forEach((option) => {
                     option.addEventListener('click', selectOption);
+                    option.addEventListener('touchstart', handleTouchStart, {passive: true});
+                    option.addEventListener('touchend', handleTouchEnd, {passive: true});
                     optionsEl.appendChild(option);
                 });
 
@@ -1419,6 +1739,15 @@
                 feedbackEl.textContent = 'Please refresh the page';
                 feedbackEl.className = 'feedback incorrect';
             }
+        }
+
+        // Touch handling for mobile
+        function handleTouchStart(e) {
+            this.style.transform = 'scale(0.98)';
+        }
+
+        function handleTouchEnd(e) {
+            this.style.transform = '';
         }
 
         // Deterministic shuffle based on word Chinese character
@@ -1745,6 +2074,9 @@
 
             // Keyboard controls
             document.addEventListener('keydown', handleKeydown);
+
+            // Prevent double-tap zoom on buttons for mobile
+            document.addEventListener('touchstart', function() {}, {passive: true});
         }
 
         // Change batch size
@@ -1794,6 +2126,8 @@
             const options = document.querySelectorAll('.option');
             options.forEach(opt => {
                 opt.removeEventListener('click', selectOption);
+                opt.removeEventListener('touchstart', handleTouchStart);
+                opt.removeEventListener('touchend', handleTouchEnd);
                 opt.style.pointerEvents = 'none';
                 if (opt.dataset.correct === 'true') {
                     opt.classList.add('correct');
