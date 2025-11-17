@@ -765,6 +765,58 @@
             margin-top: 20px;
         }
 
+        /* Previous Question Button */
+        .navigation-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Sync Indicator */
+        .sync-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: var(--success);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            z-index: 1001;
+            display: none;
+            animation: fadeInOut 2s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -975,6 +1027,14 @@
             .batch-progress {
                 grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
                 gap: 6px;
+            }
+
+            .navigation-controls {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                min-height: 44px;
             }
 
             .subtitle {
@@ -1233,6 +1293,9 @@
         Failed to load vocabulary. Please check that the vocabulary.json file is in the correct location.
     </div>
 
+    <!-- Sync Indicator -->
+    <div class="sync-indicator" id="sync-indicator">Progress Saved</div>
+
     <div class="container" style="display: none;" id="main-container">
         <!-- Header -->
         <header class="header">
@@ -1308,6 +1371,11 @@
                 <div class="question" id="question">Loading...</div>
                 <div class="feedback" id="feedback"></div>
                 <div class="options" id="options"></div>
+
+                <!-- Navigation Controls -->
+                <div class="navigation-controls">
+                    <button class="nav-btn" id="previous-question-btn" disabled>⬅️ Previous Question</button>
+                </div>
             </div>
 
             <!-- Batch Navigation -->
@@ -1449,6 +1517,10 @@
         let batchPerformance = {};
         let totalWordsCount = 0;
         let similarWordsMap = {};
+        let previousQuestionState = null;
+
+        // Progress versioning
+        const PROGRESS_VERSION = 3;
 
         // DOM elements
         const questionEl = document.getElementById('question');
@@ -1490,6 +1562,8 @@
         const closeShareBtn = document.getElementById('close-share-btn');
         const copyUrlBtn = document.getElementById('copy-url-btn');
         const qrCodeContainer = document.getElementById('qr-code');
+        const syncIndicator = document.getElementById('sync-indicator');
+        const previousQuestionBtn = document.getElementById('previous-question-btn');
 
         // Analysis elements
         const analysisBtn = document.getElementById('analysis-btn');
@@ -1502,6 +1576,262 @@
         const analysisWordsToReview = document.getElementById('analysis-words-to-review');
         const batchPerformanceEl = document.getElementById('batch-performance');
         const weakWordsList = document.getElementById('weak-words-list');
+
+        // ==================== VERSIONED PROGRESS SYSTEM ====================
+
+        // Save progress with versioning
+        function saveProgress() {
+            const progressData = {
+                version: PROGRESS_VERSION,
+                timestamp: Date.now(),
+                currentBatch,
+                batchSize,
+                currentIndex,
+                correctAnswers,
+                totalAnswered,
+                wrongAnswers,
+                isPinyinMode,
+                isReviewMode,
+                reviewWords,
+                completedBatches,
+                batchPerformance,
+                totalWordsCount,
+                deviceId: getDeviceId()
+            };
+
+            localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
+            showSyncIndicator();
+        }
+
+        // Load progress with version detection and conflict resolution
+        function loadProgress() {
+            const savedProgress = localStorage.getItem('hskQuizProgress');
+            if (savedProgress) {
+                try {
+                    const progress = JSON.parse(savedProgress);
+
+                    // Migrate old data if needed
+                    const migratedProgress = migrateProgressData(progress);
+
+                    // Resolve conflicts by choosing the most recent version
+                    const currentProgress = getCurrentProgressData();
+
+                    if (shouldUseNewerProgress(migratedProgress, currentProgress)) {
+                        console.log('Using newer progress data from storage');
+                        applyProgressData(migratedProgress);
+                    } else {
+                        console.log('Keeping current progress data (newer)');
+                        // Current data is newer, no need to apply old data
+                    }
+
+                } catch (e) {
+                    console.error('Error loading saved progress:', e);
+                    resetCurrentBatch();
+                    loadCurrentBatch();
+                }
+            }
+        }
+
+        // Migrate progress data from older versions
+        function migrateProgressData(progress) {
+            if (!progress.version) {
+                // Version 1: Initial version
+                console.log('Migrating from version 1 to version', PROGRESS_VERSION);
+                return {
+                    version: PROGRESS_VERSION,
+                    timestamp: Date.now(),
+                    currentBatch: progress.currentBatch || 0,
+                    batchSize: progress.batchSize || 50,
+                    currentIndex: progress.currentIndex || 0,
+                    correctAnswers: progress.correctAnswers || 0,
+                    totalAnswered: progress.totalAnswered || 0,
+                    wrongAnswers: progress.wrongAnswers || [],
+                    isPinyinMode: progress.isPinyinMode !== false,
+                    isReviewMode: progress.isReviewMode || false,
+                    reviewWords: progress.reviewWords || [],
+                    completedBatches: progress.completedBatches || [],
+                    batchPerformance: progress.batchPerformance || {},
+                    totalWordsCount: progress.totalWordsCount || originalWords.length,
+                    deviceId: getDeviceId()
+                };
+            }
+
+            // Version 2: Add timestamp
+            if (progress.version === 2) {
+                console.log('Migrating from version 2 to version', PROGRESS_VERSION);
+                return {
+                    ...progress,
+                    version: PROGRESS_VERSION,
+                    timestamp: progress.timestamp || Date.now(),
+                    deviceId: getDeviceId()
+                };
+            }
+
+            return progress;
+        }
+
+        // Get current progress data for comparison
+        function getCurrentProgressData() {
+            return {
+                version: PROGRESS_VERSION,
+                timestamp: Date.now(),
+                currentBatch,
+                batchSize,
+                currentIndex,
+                correctAnswers,
+                totalAnswered,
+                wrongAnswers,
+                isPinyinMode,
+                isReviewMode,
+                reviewWords,
+                completedBatches,
+                batchPerformance,
+                totalWordsCount,
+                deviceId: getDeviceId()
+            };
+        }
+
+        // Determine which progress data is newer
+        function shouldUseNewerProgress(savedProgress, currentProgress) {
+            // If current session has no meaningful progress, use saved
+            if (currentProgress.totalAnswered === 0 && savedProgress.totalAnswered > 0) {
+                return true;
+            }
+
+            // If saved data is from a newer version, use it
+            if (savedProgress.version > currentProgress.version) {
+                return true;
+            }
+
+            // If versions are the same, use the one with later timestamp
+            if (savedProgress.version === currentProgress.version) {
+                return savedProgress.timestamp > currentProgress.timestamp;
+            }
+
+            // Otherwise keep current data
+            return false;
+        }
+
+        // Apply progress data to current session
+        function applyProgressData(progress) {
+            currentBatch = Math.max(0, parseInt(progress.currentBatch) || 0);
+            batchSize = Math.max(1, parseInt(progress.batchSize) || 50);
+            currentIndex = Math.max(0, parseInt(progress.currentIndex) || 0);
+            correctAnswers = Math.max(0, parseInt(progress.correctAnswers) || 0);
+            totalAnswered = Math.max(0, parseInt(progress.totalAnswered) || 0);
+
+            wrongAnswers = Array.isArray(progress.wrongAnswers) ? progress.wrongAnswers : [];
+            isPinyinMode = typeof progress.isPinyinMode === 'boolean' ? progress.isPinyinMode : true;
+            isReviewMode = typeof progress.isReviewMode === 'boolean' ? progress.isReviewMode : false;
+            reviewWords = Array.isArray(progress.reviewWords) ? progress.reviewWords : [];
+            completedBatches = Array.isArray(progress.completedBatches) ? progress.completedBatches : [];
+            batchPerformance = typeof progress.batchPerformance === 'object' ? progress.batchPerformance : {};
+            totalWordsCount = Math.max(0, parseInt(progress.totalWordsCount) || originalWords.length);
+
+            // Update UI based on loaded progress
+            document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
+            document.getElementById('mode-english').classList.toggle('active', !isPinyinMode);
+
+            if (reviewWords.length > 0) {
+                reviewWrongBtn.style.display = 'block';
+            }
+
+            // Safety check: if in review mode but no review words, switch back to normal mode
+            if (isReviewMode && reviewWords.length === 0) {
+                isReviewMode = false;
+                currentIndex = 0;
+            }
+
+            loadCurrentBatch();
+            updateUI();
+            updateBatchNavigation();
+            updatePreviousButton();
+        }
+
+        // Generate a semi-persistent device ID
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('hskDeviceId');
+            if (!deviceId) {
+                deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem('hskDeviceId', deviceId);
+            }
+            return deviceId;
+        }
+
+        // Show sync indicator
+        function showSyncIndicator() {
+            syncIndicator.style.display = 'block';
+            setTimeout(() => {
+                syncIndicator.style.display = 'none';
+            }, 2000);
+        }
+
+        // ==================== PREVIOUS QUESTION FUNCTIONALITY ====================
+
+        // Save current question state for potential return
+        function saveCurrentQuestionState() {
+            if (currentIndex > 0) {
+                const currentWord = isReviewMode ? reviewWords[currentIndex - 1] : currentBatchWords[currentIndex - 1];
+                if (currentWord) {
+                    previousQuestionState = {
+                        word: currentWord,
+                        index: currentIndex - 1,
+                        question: questionEl.textContent,
+                        options: Array.from(optionsEl.children).map(option => ({
+                            innerHTML: option.innerHTML,
+                            isCorrect: option.dataset.correct === 'true',
+                            isSelected: option.classList.contains('selected')
+                        })),
+                        feedback: {
+                            text: feedbackEl.textContent,
+                            className: feedbackEl.className
+                        }
+                    };
+                }
+            }
+            updatePreviousButton();
+        }
+
+        // Go to previous question
+        function goToPreviousQuestion() {
+            if (!previousQuestionState) return;
+
+            // Restore the previous question state
+            questionEl.textContent = previousQuestionState.question;
+            optionsEl.innerHTML = '';
+
+            previousQuestionState.options.forEach(opt => {
+                const option = document.createElement('div');
+                option.className = 'option';
+                option.innerHTML = opt.innerHTML;
+                if (opt.isCorrect) {
+                    option.dataset.correct = 'true';
+                }
+                if (opt.isSelected) {
+                    option.classList.add('selected');
+                }
+                // Make options read-only for previous questions
+                option.style.pointerEvents = 'none';
+                optionsEl.appendChild(option);
+            });
+
+            feedbackEl.textContent = previousQuestionState.feedback.text;
+            feedbackEl.className = previousQuestionState.feedback.className;
+
+            // Update current index for display purposes only
+            // Don't change the actual progress tracking
+            const displayIndex = previousQuestionState.index;
+            currentQuestionEl.textContent = displayIndex + 1;
+
+            // Disable previous button after going back
+            previousQuestionState = null;
+            updatePreviousButton();
+        }
+
+        // Update previous button state
+        function updatePreviousButton() {
+            previousQuestionBtn.disabled = !previousQuestionState || currentIndex === 0;
+        }
 
         // ==================== CONSISTENT BATCHES IMPLEMENTATION ====================
 
@@ -1737,6 +2067,9 @@
                     return;
                 }
 
+                // Save current question state before moving to next
+                saveCurrentQuestionState();
+
                 // Get current word with safety check
                 let currentWord;
                 if (isReviewMode) {
@@ -1781,6 +2114,7 @@
 
                 selectedOption = null;
                 updateUI();
+                updatePreviousButton();
             } catch (error) {
                 console.error('Error generating question:', error);
                 questionEl.textContent = 'Error loading question';
@@ -2120,6 +2454,9 @@
             closeAnalysisBtn.addEventListener('click', hideAnalysisModal);
             exportAnalysisBtn.addEventListener('click', exportAnalysisData);
 
+            // Previous question button
+            previousQuestionBtn.addEventListener('click', goToPreviousQuestion);
+
             // Keyboard controls
             document.addEventListener('keydown', handleKeydown);
 
@@ -2260,7 +2597,9 @@
             wrongAnswers = [];
             totalAnswered = 0;
             isReviewMode = false;
+            previousQuestionState = null;
             reviewWrongBtn.style.display = 'none';
+            updatePreviousButton();
         }
 
         // Show review section
@@ -2303,6 +2642,7 @@
             correctAnswers = 0;
             wrongAnswers = [];
             totalAnswered = 0;
+            previousQuestionState = null;
 
             hideReviewSection();
             document.querySelector('.question-container').style.display = 'flex';
@@ -2462,76 +2802,6 @@
             }
         }
 
-        // Save progress to localStorage
-        function saveProgress() {
-            const progressData = {
-                currentBatch,
-                batchSize,
-                currentIndex,
-                correctAnswers,
-                totalAnswered,
-                wrongAnswers,
-                isPinyinMode,
-                isReviewMode,
-                reviewWords,
-                completedBatches,
-                batchPerformance,
-                totalWordsCount
-            };
-
-            localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
-        }
-
-        // Load progress from localStorage with data validation
-        function loadProgress() {
-            const savedProgress = localStorage.getItem('hskQuizProgress');
-            if (savedProgress) {
-                try {
-                    const progress = JSON.parse(savedProgress);
-
-                    // Validate and set each property with fallbacks
-                    currentBatch = Math.max(0, parseInt(progress.currentBatch) || 0);
-                    batchSize = Math.max(1, parseInt(progress.batchSize) || 50);
-                    currentIndex = Math.max(0, parseInt(progress.currentIndex) || 0);
-                    correctAnswers = Math.max(0, parseInt(progress.correctAnswers) || 0);
-                    totalAnswered = Math.max(0, parseInt(progress.totalAnswered) || 0);
-
-                    // Validate arrays and objects
-                    wrongAnswers = Array.isArray(progress.wrongAnswers) ? progress.wrongAnswers : [];
-                    isPinyinMode = typeof progress.isPinyinMode === 'boolean' ? progress.isPinyinMode : true;
-                    isReviewMode = typeof progress.isReviewMode === 'boolean' ? progress.isReviewMode : false;
-                    reviewWords = Array.isArray(progress.reviewWords) ? progress.reviewWords : [];
-                    completedBatches = Array.isArray(progress.completedBatches) ? progress.completedBatches : [];
-                    batchPerformance = typeof progress.batchPerformance === 'object' ? progress.batchPerformance : {};
-                    totalWordsCount = Math.max(0, parseInt(progress.totalWordsCount) || originalWords.length);
-
-                    // Update UI based on loaded progress
-                    document.getElementById('mode-pinyin').classList.toggle('active', isPinyinMode);
-                    document.getElementById('mode-english').classList.toggle('active', !isPinyinMode);
-
-                    if (reviewWords.length > 0) {
-                        reviewWrongBtn.style.display = 'block';
-                    }
-
-                    // Safety check: if in review mode but no review words, switch back to normal mode
-                    if (isReviewMode && reviewWords.length === 0) {
-                        isReviewMode = false;
-                        currentIndex = 0;
-                    }
-
-                    loadCurrentBatch();
-                    updateUI();
-                    updateBatchNavigation();
-
-                } catch (e) {
-                    console.error('Error loading saved progress:', e);
-                    // If there's an error loading progress, reset to default state
-                    resetCurrentBatch();
-                    loadCurrentBatch();
-                }
-            }
-        }
-
         // ==================== COMPRESSION FUNCTIONS ====================
 
         // Convert legacy progress data to optimized format (v2)
@@ -2681,26 +2951,26 @@
 
         // Updated share progress function with compression
         function showShareModal() {
-            const progressData = localStorage.getItem('hskQuizProgress');
-            if (!progressData) {
-                alert('No progress to share! Complete some questions first.');
-                return;
-            }
+            const progressData = getCurrentProgressData();
+
+            // Add device info for better conflict resolution
+            progressData.deviceId = getDeviceId();
+            progressData.appVersion = '1.0.0';
 
             try {
-                // Convert to optimized format for sharing (regardless of current format)
-                const optimizedData = convertToOptimizedFormat(progressData);
+                // Convert to optimized format for sharing
+                const optimizedData = convertToOptimizedFormat(JSON.stringify(progressData));
 
                 // Compress using LZ-String
                 const compressedData = LZString.compressToBase64(optimizedData)
-                    .replace(/\+/g, '-')  // URL-safe replacements
+                    .replace(/\+/g, '-')
                     .replace(/\//g, '_')
-                    .replace(/=+$/, '');   // Remove padding
+                    .replace(/=+$/, '');
 
                 const shareUrl = `${window.location.origin}${window.location.pathname}?p=${compressedData}`;
 
-                // Display URL
-                shareUrlEl.textContent = shareUrl;
+                // Display URL with version info
+                shareUrlEl.textContent = `${shareUrl}\n\nVersion: ${progressData.version} | Last Updated: ${new Date(progressData.timestamp).toLocaleString()}`;
 
                 // Generate QR code
                 generateQRCode(shareUrl);
@@ -2711,7 +2981,7 @@
                 console.error('Error generating share URL:', error);
                 // Fallback to old method without compression
                 try {
-                    const encodedData = encodeUTF8(progressData).replace(/=/g, '');
+                    const encodedData = encodeUTF8(JSON.stringify(progressData)).replace(/=/g, '');
                     const shareUrl = `${window.location.origin}${window.location.pathname}?progress=${encodedData}`;
                     shareUrlEl.textContent = shareUrl;
                     generateQRCode(shareUrl);
@@ -2873,6 +3143,7 @@
                 generateQuestion();
                 updateUI();
                 updateBatchNavigation();
+                updatePreviousButton();
                 showMainContent();
             }
         }
