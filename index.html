@@ -9,7 +9,7 @@
     <!-- LZ-String Compression Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
-        /* Your existing CSS remains exactly the same, adding new styles for analysis */
+        /* Your existing CSS remains exactly the same, adding new styles for navigation */
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
@@ -765,12 +765,18 @@
             margin-top: 20px;
         }
 
-        /* Previous Question Button */
+        /* Navigation Controls */
         .navigation-controls {
             display: flex;
             justify-content: space-between;
             margin-top: 16px;
             gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .navigation-controls.visible {
+            opacity: 1;
         }
 
         .nav-btn {
@@ -785,6 +791,10 @@
             background: var(--bg-secondary);
             color: var(--text-primary);
             border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .nav-btn:hover:not(:disabled) {
@@ -795,6 +805,10 @@
         .nav-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .nav-btn.hidden {
+            display: none;
         }
 
         /* Sync Indicator */
@@ -1373,8 +1387,13 @@
                 <div class="options" id="options"></div>
 
                 <!-- Navigation Controls -->
-                <div class="navigation-controls">
-                    <button class="nav-btn" id="previous-question-btn" disabled>⬅️ Previous Question</button>
+                <div class="navigation-controls" id="navigation-controls">
+                    <button class="nav-btn hidden" id="previous-question-btn" disabled>
+                        <span>⬅️</span> Previous
+                    </button>
+                    <button class="nav-btn hidden" id="forward-question-btn" disabled>
+                        Forward <span>➡️</span>
+                    </button>
                 </div>
             </div>
 
@@ -1517,7 +1536,10 @@
         let batchPerformance = {};
         let totalWordsCount = 0;
         let similarWordsMap = {};
-        let previousQuestionState = null;
+
+        // Navigation history
+        let navigationHistory = [];
+        let navigationPosition = -1;
 
         // Progress versioning
         const PROGRESS_VERSION = 3;
@@ -1564,6 +1586,8 @@
         const qrCodeContainer = document.getElementById('qr-code');
         const syncIndicator = document.getElementById('sync-indicator');
         const previousQuestionBtn = document.getElementById('previous-question-btn');
+        const forwardQuestionBtn = document.getElementById('forward-question-btn');
+        const navigationControls = document.getElementById('navigation-controls');
 
         // Analysis elements
         const analysisBtn = document.getElementById('analysis-btn');
@@ -1600,7 +1624,7 @@
             };
 
             localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
-            showSyncIndicator();
+
         }
 
         // Load progress with version detection and conflict resolution
@@ -1745,7 +1769,7 @@
             loadCurrentBatch();
             updateUI();
             updateBatchNavigation();
-            updatePreviousButton();
+            updateNavigationButtons();
         }
 
         // Generate a semi-persistent device ID
@@ -1766,41 +1790,69 @@
             }, 2000);
         }
 
-        // ==================== PREVIOUS QUESTION FUNCTIONALITY ====================
+        // ==================== ENHANCED NAVIGATION SYSTEM ====================
 
-        // Save current question state for potential return
-        function saveCurrentQuestionState() {
-            if (currentIndex > 0) {
-                const currentWord = isReviewMode ? reviewWords[currentIndex - 1] : currentBatchWords[currentIndex - 1];
-                if (currentWord) {
-                    previousQuestionState = {
-                        word: currentWord,
-                        index: currentIndex - 1,
-                        question: questionEl.textContent,
-                        options: Array.from(optionsEl.children).map(option => ({
-                            innerHTML: option.innerHTML,
-                            isCorrect: option.dataset.correct === 'true',
-                            isSelected: option.classList.contains('selected')
-                        })),
-                        feedback: {
-                            text: feedbackEl.textContent,
-                            className: feedbackEl.className
-                        }
-                    };
-                }
+        // Save current question to navigation history
+        function saveToNavigationHistory() {
+            const currentWord = isReviewMode ? reviewWords[currentIndex] : currentBatchWords[currentIndex];
+            if (!currentWord) return;
+
+            // Remove any future history if we're not at the end
+            if (navigationPosition < navigationHistory.length - 1) {
+                navigationHistory = navigationHistory.slice(0, navigationPosition + 1);
             }
-            updatePreviousButton();
+
+            // Save current state
+            const state = {
+                word: currentWord,
+                index: currentIndex,
+                question: questionEl.textContent,
+                options: Array.from(optionsEl.children).map(option => ({
+                    innerHTML: option.innerHTML,
+                    isCorrect: option.dataset.correct === 'true',
+                    isSelected: option.classList.contains('selected')
+                })),
+                feedback: {
+                    text: feedbackEl.textContent,
+                    className: feedbackEl.className
+                }
+            };
+
+            navigationHistory.push(state);
+            navigationPosition = navigationHistory.length - 1;
+
+            updateNavigationButtons();
         }
 
-        // Go to previous question
+        // Go to previous question in navigation history
         function goToPreviousQuestion() {
-            if (!previousQuestionState) return;
+            if (navigationPosition <= 0) return;
 
-            // Restore the previous question state
-            questionEl.textContent = previousQuestionState.question;
+            navigationPosition--;
+            const state = navigationHistory[navigationPosition];
+            restoreQuestionState(state);
+            updateNavigationButtons();
+        }
+
+        // Go to forward question in navigation history
+        function goToForwardQuestion() {
+            if (navigationPosition >= navigationHistory.length - 1) return;
+
+            navigationPosition++;
+            const state = navigationHistory[navigationPosition];
+            restoreQuestionState(state);
+            updateNavigationButtons();
+            setTimeout(() => {
+                generateQuestion();
+            }, 5000);
+        }
+
+        // Restore question state from history
+        function restoreQuestionState(state) {
+            questionEl.textContent = state.question;
             optionsEl.innerHTML = '';
 
-            previousQuestionState.options.forEach(opt => {
+            state.options.forEach(opt => {
                 const option = document.createElement('div');
                 option.className = 'option';
                 option.innerHTML = opt.innerHTML;
@@ -1810,27 +1862,40 @@
                 if (opt.isSelected) {
                     option.classList.add('selected');
                 }
-                // Make options read-only for previous questions
+                // Make options read-only for navigation
                 option.style.pointerEvents = 'none';
                 optionsEl.appendChild(option);
             });
 
-            feedbackEl.textContent = previousQuestionState.feedback.text;
-            feedbackEl.className = previousQuestionState.feedback.className;
+            feedbackEl.textContent = state.feedback.text;
+            feedbackEl.className = state.feedback.className;
 
             // Update current index for display purposes only
-            // Don't change the actual progress tracking
-            const displayIndex = previousQuestionState.index;
-            currentQuestionEl.textContent = displayIndex + 1;
+            currentQuestionEl.textContent = state.index + 1;
 
-            // Disable previous button after going back
-            previousQuestionState = null;
-            updatePreviousButton();
+            // Show navigation controls when navigating
+            navigationControls.classList.add('visible');
         }
 
-        // Update previous button state
-        function updatePreviousButton() {
-            previousQuestionBtn.disabled = !previousQuestionState || currentIndex === 0;
+        // Update navigation buttons visibility and state
+        function updateNavigationButtons() {
+            const hasPrevious = navigationPosition > 0;
+            const hasForward = navigationPosition < navigationHistory.length - 1;
+
+            // Show/hide buttons based on availability
+            if (hasPrevious || hasForward) {
+                navigationControls.classList.add('visible');
+            } else {
+                navigationControls.classList.remove('visible');
+            }
+
+            // Update individual button states
+            previousQuestionBtn.disabled = !hasPrevious;
+            forwardQuestionBtn.disabled = !hasForward;
+
+            // Show/hide buttons based on availability
+            previousQuestionBtn.classList.toggle('hidden', !hasPrevious);
+            forwardQuestionBtn.classList.toggle('hidden', !hasForward);
         }
 
         // ==================== CONSISTENT BATCHES IMPLEMENTATION ====================
@@ -2067,8 +2132,8 @@
                     return;
                 }
 
-                // Save current question state before moving to next
-                saveCurrentQuestionState();
+                // Save current state to navigation history
+                saveToNavigationHistory();
 
                 // Get current word with safety check
                 let currentWord;
@@ -2114,7 +2179,7 @@
 
                 selectedOption = null;
                 updateUI();
-                updatePreviousButton();
+                updateNavigationButtons();
             } catch (error) {
                 console.error('Error generating question:', error);
                 questionEl.textContent = 'Error loading question';
@@ -2454,8 +2519,9 @@
             closeAnalysisBtn.addEventListener('click', hideAnalysisModal);
             exportAnalysisBtn.addEventListener('click', exportAnalysisData);
 
-            // Previous question button
+            // Navigation buttons
             previousQuestionBtn.addEventListener('click', goToPreviousQuestion);
+            forwardQuestionBtn.addEventListener('click', goToForwardQuestion);
 
             // Keyboard controls
             document.addEventListener('keydown', handleKeydown);
@@ -2597,9 +2663,10 @@
             wrongAnswers = [];
             totalAnswered = 0;
             isReviewMode = false;
-            previousQuestionState = null;
+            navigationHistory = [];
+            navigationPosition = -1;
             reviewWrongBtn.style.display = 'none';
-            updatePreviousButton();
+            updateNavigationButtons();
         }
 
         // Show review section
@@ -2642,7 +2709,8 @@
             correctAnswers = 0;
             wrongAnswers = [];
             totalAnswered = 0;
-            previousQuestionState = null;
+            navigationHistory = [];
+            navigationPosition = -1;
 
             hideReviewSection();
             document.querySelector('.question-container').style.display = 'flex';
@@ -3143,7 +3211,7 @@
                 generateQuestion();
                 updateUI();
                 updateBatchNavigation();
-                updatePreviousButton();
+                updateNavigationButtons();
                 showMainContent();
             }
         }
