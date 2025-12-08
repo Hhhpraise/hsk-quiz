@@ -1578,6 +1578,526 @@ async function init() {
     }
 }
 
+
+
+// Add this variable to track if we're in review mode
+let reviewSessionOriginalBatch = null;
+let reviewSessionOriginalIndex = null;
+
+// Update the startReviewSession function
+function startReviewSession() {
+    if (reviewWords.length === 0) return;
+
+    // Save current state to return to later
+    reviewSessionOriginalBatch = currentBatch;
+    reviewSessionOriginalIndex = currentIndex;
+
+    // Set up review session
+    isReviewMode = true;
+    currentIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    totalAnswered = 0;
+    selectedOption = null;
+
+    // Close modal and update UI
+    closeModal('review-modal');
+
+    // Update header to show we're in review mode
+    document.getElementById('app-title').textContent = 'Review Session';
+    document.getElementById('app-subtitle').textContent = 'Practicing words you missed';
+
+    // Show a notification
+    showQuickNotification(`Starting review session with ${reviewWords.length} words`);
+
+    // Generate first review question
+    generateQuestion();
+    updateUI();
+    updateReviewButton();
+    saveProgress();
+}
+
+// Add a function to end review session
+function endReviewSession() {
+    if (!isReviewMode) return;
+
+    // Restore original state
+    isReviewMode = false;
+    if (reviewSessionOriginalBatch !== null) {
+        currentBatch = reviewSessionOriginalBatch;
+    }
+    if (reviewSessionOriginalIndex !== null) {
+        currentIndex = reviewSessionOriginalIndex;
+    }
+
+    reviewSessionOriginalBatch = null;
+    reviewSessionOriginalIndex = null;
+
+    // Restore original title
+    document.getElementById('app-title').textContent = 'HSK Quiz';
+    document.getElementById('app-subtitle').textContent = 'Match Chinese characters to their meanings';
+
+    // Generate question from original batch
+    generateQuestion();
+    updateUI();
+    saveProgress();
+}
+
+// Update the getCurrentBatch function to handle review mode
+function getCurrentBatch() {
+    if (isReviewMode) {
+        return reviewWords;
+    }
+    const start = currentBatch * batchSize;
+    const end = start + batchSize;
+    return vocabulary.slice(start, Math.min(end, vocabulary.length));
+}
+
+// Update the updateBatchInfo function for review mode
+function updateBatchInfo() {
+    if (isReviewMode) {
+        batchInfoEl.innerHTML = `
+            <i class="fas fa-redo"></i>
+            <span>Review: ${currentIndex + 1} of ${reviewWords.length} words</span>
+        `;
+    } else {
+        const totalBatches = Math.ceil(vocabulary.length / batchSize);
+        batchInfoEl.innerHTML = `
+            <i class="fas fa-layer-group"></i>
+            <span>Batch ${currentBatch + 1} of ${totalBatches} (${totalWordsCount} words)</span>
+        `;
+    }
+}
+
+// Update the completeCurrentBatch function for review mode
+function completeCurrentBatch() {
+    if (isReviewMode) {
+        // Handle review session completion
+        showReviewCompletionModal();
+        return;
+    }
+
+    const batchWords = getCurrentBatch();
+    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+
+    // Mark batch as completed
+    completedBatches.add(currentBatch);
+
+    // Store performance data
+    batchPerformance[currentBatch] = {
+        correct: correctCount,
+        total: batchWords.length,
+        accuracy: accuracy
+    };
+
+    // Check if this is the last batch
+    const totalBatches = Math.ceil(vocabulary.length / batchSize);
+    const isLastBatch = currentBatch >= totalBatches - 1;
+
+    if (isLastBatch) {
+        // If last batch, show completion with different options
+        showCompletionModal(true);
+    } else {
+        // Auto-advance to next batch after a delay
+        setTimeout(() => {
+            currentBatch++;
+            currentIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            totalAnswered = 0;
+            selectedOption = null;
+
+            // Show quick notification instead of full modal
+            showQuickNotification(`Moving to Batch ${currentBatch + 1}`);
+
+            // Generate new batch question
+            generateQuestion();
+            updateBatchInfo();
+            saveProgress();
+        }, 1500);
+    }
+}
+
+// Add a function for review completion modal
+function showReviewCompletionModal() {
+    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+
+    // Create and show modal
+    const modalHTML = `
+        <div class="modal" id="review-completion-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Review Session Complete!</h3>
+                    <button class="modal-close" onclick="closeModal('review-completion-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div style="text-align: center; padding: 20px 0;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📚</div>
+                        <h3 style="margin-bottom: 20px;">Great Practice!</h3>
+
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                            <div class="stat-card">
+                                <div class="stat-value">${reviewWords.length}</div>
+                                <div class="stat-label">Words Reviewed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${correctCount}</div>
+                                <div class="stat-label">Correct</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${wrongCount}</div>
+                                <div class="stat-label">Wrong</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${accuracy}%</div>
+                                <div class="stat-label">Accuracy</div>
+                            </div>
+                        </div>
+
+                        <p style="color: #8e8e93; margin-bottom: 24px;">
+                            ${reviewWords.length === 0 ?
+                                'All words mastered! Great job!' :
+                                `${reviewWords.length} words still need practice. Keep reviewing!`
+                            }
+                        </p>
+
+                        <div style="display: flex; gap: 12px;">
+                            ${reviewWords.length > 0 ? `
+                                <button class="action-btn secondary" id="continue-review-btn" style="flex: 1;">
+                                    Continue Review
+                                </button>
+                            ` : ''}
+                            <button class="action-btn primary" id="end-review-btn" style="flex: 1;">
+                                End Review Session
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById('review-completion-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Show modal
+    const modal = document.getElementById('review-completion-modal');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Add event listeners
+    setTimeout(() => {
+        document.getElementById('continue-review-btn')?.addEventListener('click', () => {
+            closeModal('review-completion-modal');
+            // Reset counters and continue
+            currentIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            totalAnswered = 0;
+            generateQuestion();
+            updateUI();
+        });
+
+        document.getElementById('end-review-btn')?.addEventListener('click', () => {
+            closeModal('review-completion-modal');
+            endReviewSession();
+        });
+
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal('review-completion-modal');
+                endReviewSession();
+            }
+        });
+    }, 100);
+}
+
+// Update the closeModal function to handle our dynamically created modal
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+
+        // Remove from DOM if it's our review completion modal
+        if (modalId === 'review-completion-modal') {
+            setTimeout(() => modal.remove(), 300);
+        }
+    }
+}
+
+// Update the checkAnswer function to handle review mode properly
+function checkAnswer(optionEl) {
+    const isCorrect = optionEl.dataset.correct === 'true';
+    const options = document.querySelectorAll('.option');
+    const currentWord = getCurrentBatch()[currentIndex];
+
+    // Disable all options
+    options.forEach(opt => {
+        opt.style.pointerEvents = 'none';
+    });
+
+    // Highlight correct/incorrect
+    options.forEach(opt => {
+        if (opt.dataset.correct === 'true') {
+            opt.classList.add('correct');
+        } else if (opt === optionEl) {
+            opt.classList.add('incorrect');
+        }
+    });
+
+    // Update stats
+    totalAnswered++;
+    if (isCorrect) {
+        correctCount++;
+        showFeedback('🎉 Correct! Well done!', 'correct');
+
+        // Remove from review words if it was there (only in review mode)
+        if (isReviewMode) {
+            const index = reviewWords.findIndex(w => w.chinese === currentWord.chinese);
+            if (index > -1) {
+                reviewWords.splice(index, 1);
+                updateReviewButton();
+            }
+        }
+    } else {
+        wrongCount++;
+        const correctText = isPinyinMode ?
+            `${currentWord.pinyin} - ${currentWord.english}` :
+            currentWord.english;
+
+        showFeedback(`❌ Incorrect.<br><strong>${correctText}</strong>`, 'incorrect');
+
+        // Only add to wrongAnswers if not in review mode
+        if (!isReviewMode) {
+            wrongAnswers.push({
+                word: currentWord,
+                selectedAnswer: optionEl.textContent,
+                correctAnswer: correctText
+            });
+
+            // Add to review words if not already there
+            if (!reviewWords.some(w => w.chinese === currentWord.chinese)) {
+                reviewWords.push(currentWord);
+                updateReviewButton();
+            }
+        }
+    }
+
+    // Update UI
+    updateUI();
+    saveProgress();
+
+    // Check if this was the last question
+    const isLastQuestion = currentIndex >= getCurrentBatch().length - 1;
+
+    if (isLastQuestion) {
+        // If last question, complete the batch/session after delay
+        setTimeout(() => {
+            if (isReviewMode && reviewWords.length === 0) {
+                // If all review words are mastered
+                showReviewCompletionModal();
+            } else if (isReviewMode) {
+                // If still have review words, ask to continue
+                showReviewCompletionModal();
+            } else {
+                // Normal batch completion
+                completeCurrentBatch();
+            }
+        }, 2000);
+    } else if (autoProceed) {
+        // If not last question and auto-proceed is enabled, move to next question
+        setTimeout(() => {
+            currentIndex++;
+            selectedOption = null;
+            generateQuestion();
+        }, 2000);
+    }
+}
+
+// Update the generateOptions function to handle review mode
+function generateOptions(correctWord) {
+    let options = [correctWord];
+
+    if (isReviewMode) {
+        // In review mode, use the entire vocabulary for distractors
+        while (options.length < 4) {
+            const randomIndex = Math.floor(Math.random() * vocabulary.length);
+            const randomWord = vocabulary[randomIndex];
+
+            if (!options.some(w => w.chinese === randomWord.chinese)) {
+                options.push(randomWord);
+            }
+        }
+    } else {
+        // Normal mode logic (unchanged)
+        const batchWords = getCurrentBatch();
+        const similarWords = similarWordsMap[correctWord.chinese] || [];
+
+        // Add similar words
+        for (const similarWord of similarWords) {
+            if (options.length >= 4) break;
+            if (similarWord.chinese !== correctWord.chinese) {
+                options.push(similarWord);
+            }
+        }
+
+        // Fill remaining with random words
+        while (options.length < 4) {
+            const randomIndex = Math.floor(Math.random() * batchWords.length);
+            const randomWord = batchWords[randomIndex];
+
+            if (!options.some(w => w.chinese === randomWord.chinese)) {
+                options.push(randomWord);
+            }
+        }
+    }
+
+    // Deterministic shuffle
+    deterministicShuffle(options, correctWord.chinese);
+
+    // Clear options container
+    optionsEl.innerHTML = '';
+
+    // Create option elements
+    options.forEach((word, index) => {
+        const optionEl = document.createElement('div');
+        optionEl.className = 'option';
+        optionEl.dataset.index = index;
+        optionEl.dataset.correct = word.chinese === correctWord.chinese;
+
+        const content = document.createElement('div');
+        content.className = 'option-content';
+
+        if (isPinyinMode && showEnglishInPinyin) {
+            // Show both pinyin and English
+            const pinyinEl = document.createElement('div');
+            pinyinEl.className = 'option-pinyin';
+            pinyinEl.textContent = word.pinyin;
+
+            const englishEl = document.createElement('div');
+            englishEl.className = 'option-english';
+            englishEl.textContent = word.english;
+
+            content.appendChild(pinyinEl);
+            content.appendChild(englishEl);
+        } else if (isPinyinMode) {
+            // Show only pinyin
+            const text = document.createElement('div');
+            text.className = 'option-text';
+            text.textContent = word.pinyin;
+            content.appendChild(text);
+        } else {
+            // Show only English
+            const text = document.createElement('div');
+            text.className = 'option-text';
+            text.textContent = word.english;
+            content.appendChild(text);
+        }
+
+        optionEl.appendChild(content);
+
+        // Add click event
+        optionEl.addEventListener('click', () => selectOption(optionEl));
+        optionEl.addEventListener('touchstart', handleTouchStart, { passive: true });
+        optionEl.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        optionsEl.appendChild(optionEl);
+    });
+}
+
+// Add an "Exit Review" button to the action buttons in review mode
+// We'll update this dynamically
+function updateActionButtonsForReviewMode() {
+    if (isReviewMode) {
+        // Replace the review button with exit review button
+        reviewBtn.innerHTML = `
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="btn-text">Exit Review</span>
+        `;
+        reviewBtn.style.display = 'flex';
+
+        // Update click handler
+        reviewBtn.onclick = endReviewSession;
+    } else {
+        // Restore normal review button
+        updateReviewButton();
+        reviewBtn.onclick = () => showModal('review-modal');
+    }
+}
+
+// Call this when entering/exiting review mode
+function startReviewSession() {
+    if (reviewWords.length === 0) return;
+
+    // Save current state to return to later
+    reviewSessionOriginalBatch = currentBatch;
+    reviewSessionOriginalIndex = currentIndex;
+
+    // Set up review session
+    isReviewMode = true;
+    currentIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    totalAnswered = 0;
+    selectedOption = null;
+
+    // Close modal and update UI
+    closeModal('review-modal');
+
+    // Update header to show we're in review mode
+    document.getElementById('app-title').textContent = 'Review Session';
+    document.getElementById('app-subtitle').textContent = 'Practicing words you missed';
+
+    // Update action buttons
+    updateActionButtonsForReviewMode();
+
+    // Show a notification
+    showQuickNotification(`Starting review session with ${reviewWords.length} words`);
+
+    // Generate first review question
+    generateQuestion();
+    updateUI();
+    updateBatchInfo();
+    saveProgress();
+}
+
+function endReviewSession() {
+    if (!isReviewMode) return;
+
+    // Restore original state
+    isReviewMode = false;
+    if (reviewSessionOriginalBatch !== null) {
+        currentBatch = reviewSessionOriginalBatch;
+    }
+    if (reviewSessionOriginalIndex !== null) {
+        currentIndex = reviewSessionOriginalIndex;
+    }
+
+    reviewSessionOriginalBatch = null;
+    reviewSessionOriginalIndex = null;
+
+    // Restore original title
+    document.getElementById('app-title').textContent = 'HSK Quiz';
+    document.getElementById('app-subtitle').textContent = 'Match Chinese characters to their meanings';
+
+    // Restore action buttons
+    updateActionButtonsForReviewMode();
+
+    // Generate question from original batch
+    generateQuestion();
+    updateUI();
+    updateBatchInfo();
+    saveProgress();
+}
+
 // ===== INITIALIZE APP =====
 // Load saved theme
 const savedTheme = localStorage.getItem('hsk-theme') || localStorage.getItem('hsk4-theme') || 'light';
