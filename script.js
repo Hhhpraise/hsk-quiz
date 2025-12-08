@@ -1286,6 +1286,297 @@ function switchMode(isPinyin) {
     generateQuestion();
     saveProgress();
 }
+// Add this function to handle batch completion
+function completeCurrentBatch() {
+    const batchWords = getCurrentBatch();
+    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+
+    // Mark batch as completed
+    completedBatches.add(currentBatch);
+
+    // Store performance data
+    batchPerformance[currentBatch] = {
+        correct: correctCount,
+        total: batchWords.length,
+        accuracy: accuracy
+    };
+
+    // Check if this is the last batch
+    const totalBatches = Math.ceil(vocabulary.length / batchSize);
+    const isLastBatch = currentBatch >= totalBatches - 1;
+
+    if (isLastBatch) {
+        // If last batch, show completion with different options
+        showCompletionModal(true);
+    } else {
+        // Auto-advance to next batch after a delay
+        setTimeout(() => {
+            currentBatch++;
+            currentIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            totalAnswered = 0;
+            selectedOption = null;
+
+            // Show quick notification instead of full modal
+            showQuickNotification(`Moving to Batch ${currentBatch + 1}`);
+
+            // Generate new batch question
+            generateQuestion();
+            updateBatchInfo();
+            saveProgress();
+        }, 1500);
+    }
+}
+
+// Add this helper function for notifications
+function showQuickNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'quick-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #4361ee;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        z-index: 10000;
+        animation: fadeInOut 2s ease;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 2000);
+}
+
+// Update the checkAnswer function to use completeCurrentBatch
+function checkAnswer(optionEl) {
+    const isCorrect = optionEl.dataset.correct === 'true';
+    const options = document.querySelectorAll('.option');
+    const currentWord = getCurrentBatch()[currentIndex];
+
+    // Disable all options
+    options.forEach(opt => {
+        opt.style.pointerEvents = 'none';
+    });
+
+    // Highlight correct/incorrect
+    options.forEach(opt => {
+        if (opt.dataset.correct === 'true') {
+            opt.classList.add('correct');
+        } else if (opt === optionEl) {
+            opt.classList.add('incorrect');
+        }
+    });
+
+    // Update stats
+    totalAnswered++;
+    if (isCorrect) {
+        correctCount++;
+        showFeedback('🎉 Correct! Well done!', 'correct');
+
+        // Remove from review words if it was there
+        const index = reviewWords.findIndex(w => w.chinese === currentWord.chinese);
+        if (index > -1) {
+            reviewWords.splice(index, 1);
+            updateReviewButton();
+        }
+    } else {
+        wrongCount++;
+        const correctText = isPinyinMode ?
+            `${currentWord.pinyin} - ${currentWord.english}` :
+            currentWord.english;
+
+        showFeedback(`❌ Incorrect.<br><strong>${correctText}</strong>`, 'incorrect');
+
+        wrongAnswers.push({
+            word: currentWord,
+            selectedAnswer: optionEl.textContent,
+            correctAnswer: correctText
+        });
+
+        // Add to review words if not already there
+        if (!reviewWords.some(w => w.chinese === currentWord.chinese)) {
+            reviewWords.push(currentWord);
+            updateReviewButton();
+        }
+    }
+
+    // Update UI
+    updateUI();
+    saveProgress();
+
+    // Check if this was the last question in the batch
+    const isLastQuestion = currentIndex >= getCurrentBatch().length - 1;
+
+    if (isLastQuestion) {
+        // If last question, complete the batch after delay
+        setTimeout(() => {
+            completeCurrentBatch();
+        }, 2000);
+    } else if (autoProceed) {
+        // If not last question and auto-proceed is enabled, move to next question
+        setTimeout(() => {
+            currentIndex++;
+            selectedOption = null;
+            generateQuestion();
+        }, 2000);
+    }
+}
+
+// Update the skipQuestion function
+function skipQuestion() {
+    const isLastQuestion = currentIndex >= getCurrentBatch().length - 1;
+
+    if (isLastQuestion) {
+        completeCurrentBatch();
+    } else {
+        currentIndex++;
+        selectedOption = null;
+        generateQuestion();
+    }
+}
+
+// Update the populateCompletionModal function for last batch
+function populateCompletionModal(isFinal = false) {
+    const batchWords = getCurrentBatch();
+    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+    const totalBatches = Math.ceil(vocabulary.length / batchSize);
+
+    if (!isFinal) {
+        // This should only be called for the final batch now
+        return;
+    }
+
+    document.getElementById('completion-body').innerHTML = `
+        <div style="text-align: center; padding: 20px 0;">
+            <div style="font-size: 48px; margin-bottom: 20px;">${isFinal ? '🏆' : '🎉'}</div>
+            <h3 style="margin-bottom: 20px;">${isFinal ? 'All Batches Complete!' : 'Batch Complete!'}</h3>
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-value">${batchWords.length}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${correctCount}</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${wrongCount}</div>
+                    <div class="stat-label">Wrong</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${accuracy}%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+            </div>
+
+            <p style="color: #8e8e93; margin-bottom: 24px;">
+                ${isFinal ?
+                    `You've completed all ${totalBatches} batches! ${reviewWords.length > 0 ? 'You still have some words to review.' : 'Great work!'}` :
+                    'Great job! Moving to next batch...'
+                }
+            </p>
+
+            ${isFinal ? `
+                <div style="display: flex; gap: 12px;">
+                    ${reviewWords.length > 0 ? `
+                        <button class="action-btn secondary" id="completion-review-btn" style="flex: 1;">
+                            Review Mistakes
+                        </button>
+                    ` : ''}
+                    <button class="action-btn primary" id="completion-restart-btn" style="flex: 1;">
+                        Start Over
+                    </button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    // Add event listeners for modal buttons
+    document.getElementById('completion-review-btn')?.addEventListener('click', () => {
+        closeModal('completion-modal');
+        showModal('review-modal');
+    });
+
+    document.getElementById('completion-restart-btn')?.addEventListener('click', () => {
+        currentBatch = 0;
+        currentIndex = 0;
+        correctCount = 0;
+        wrongCount = 0;
+        totalAnswered = 0;
+        reviewWords = [];
+        wrongAnswers = [];
+        completedBatches.clear();
+        batchPerformance = {};
+
+        generateQuestion();
+        updateBatchInfo();
+        updateReviewButton();
+        closeModal('completion-modal');
+        saveProgress();
+    });
+}
+
+// Update the showCompletionModal function
+function showCompletionModal(isFinal = false) {
+    if (isFinal) {
+        populateCompletionModal(true);
+        setTimeout(() => {
+            showModal('completion-modal');
+        }, 500);
+    } else {
+        // For non-final batches, we auto-advance, so no modal needed
+        completeCurrentBatch();
+    }
+}
+
+// Update the init function to add CSS for notifications
+async function init() {
+    try {
+        // Add notification CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0%, 100% { opacity: 0; transform: translate(-50%, -20px); }
+                50% { opacity: 1; transform: translate(-50%, 0); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Load vocabulary
+        await loadVocabulary();
+
+        // Setup event listeners
+        setupEventListeners();
+
+        // Load saved progress (compatible with old system)
+        loadProgress();
+
+        // Check for progress in URL
+        loadProgressFromURL();
+
+        // Generate first question
+        generateQuestion();
+
+        // Hide loading screen
+        loadingScreen.style.display = 'none';
+        mainContainer.style.display = 'block';
+
+    } catch (error) {
+        console.error('Initialization error:', error);
+        loadingScreen.style.display = 'none';
+        errorMessage.style.display = 'flex';
+    }
+}
 
 // ===== INITIALIZE APP =====
 // Load saved theme
