@@ -217,6 +217,9 @@ async function init() {
         // Setup event listeners
         setupEventListeners();
 
+        // Initialize speaker button
+        initSpeakerButton();
+
         // Load saved progress (compatible with old system)
         loadProgress();
 
@@ -360,6 +363,7 @@ function precomputeSimilarWords() {
 
 // ===== QUESTION GENERATION =====
 function generateQuestion() {
+    stopSpeaking(); // Reset speaker state on new question
     const batchWords = getCurrentBatch();
     if (batchWords.length === 0) {
         showCompletionModal();
@@ -2096,6 +2100,119 @@ function endReviewSession() {
     updateUI();
     updateBatchInfo();
     saveProgress();
+}
+
+
+// ===== TEXT-TO-SPEECH (SPEAKER BUTTON) =====
+let speechSynthesisSupported = 'speechSynthesis' in window;
+let isSpeaking = false;
+
+// Preferred Chinese voice (cached after first lookup)
+let chineseVoice = null;
+
+function getChineseVoice() {
+    if (chineseVoice) return chineseVoice;
+    const voices = window.speechSynthesis.getVoices();
+    // Prefer Mandarin/Chinese voices
+    const preferred = voices.find(v =>
+        v.lang === 'zh-CN' || v.lang === 'zh-TW' ||
+        v.lang === 'zh' || v.lang.startsWith('zh-')
+    );
+    chineseVoice = preferred || null;
+    return chineseVoice;
+}
+
+// Voices may load asynchronously — refresh cache when they do
+if (speechSynthesisSupported) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        chineseVoice = null; // reset cache so next call re-fetches
+        getChineseVoice();
+    };
+}
+
+function speakCurrentWord() {
+    const speakerBtn = document.getElementById('speaker-btn');
+    const speakerIconEl = document.getElementById('speaker-icon');
+
+    if (!speechSynthesisSupported) {
+        speakerBtn.classList.add('not-supported');
+        speakerBtn.title = 'Speech not supported in this browser';
+        return;
+    }
+
+    // Get the current word
+    const batchWords = getCurrentBatch();
+    if (!batchWords || batchWords.length === 0) return;
+    const word = batchWords[currentIndex];
+    if (!word) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    if (isSpeaking) {
+        // Toggle off if already speaking
+        isSpeaking = false;
+        speakerBtn.classList.remove('speaking');
+        speakerIconEl.className = 'fas fa-volume-up';
+        return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(word.chinese);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.85;   // Slightly slower — better for learning
+    utterance.pitch = 1.0;
+
+    const voice = getChineseVoice();
+    if (voice) utterance.voice = voice;
+
+    utterance.onstart = () => {
+        isSpeaking = true;
+        speakerBtn.classList.add('speaking');
+        speakerIconEl.className = 'fas fa-volume-up';
+    };
+
+    utterance.onend = () => {
+        isSpeaking = false;
+        speakerBtn.classList.remove('speaking');
+        speakerIconEl.className = 'fas fa-volume-up';
+    };
+
+    utterance.onerror = () => {
+        isSpeaking = false;
+        speakerBtn.classList.remove('speaking');
+        speakerIconEl.className = 'fas fa-volume-up';
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function initSpeakerButton() {
+    const speakerBtn = document.getElementById('speaker-btn');
+    if (!speakerBtn) return;
+
+    if (!speechSynthesisSupported) {
+        speakerBtn.classList.add('not-supported');
+        speakerBtn.title = 'Speech synthesis not supported in this browser';
+        return;
+    }
+
+    speakerBtn.addEventListener('click', speakCurrentWord);
+    speakerBtn.addEventListener('touchend', (e) => {
+        e.preventDefault(); // Prevent double-fire on mobile
+        speakCurrentWord();
+    });
+}
+
+// Stop speaking when moving to a new question (so the animation resets)
+function stopSpeaking() {
+    if (speechSynthesisSupported) {
+        window.speechSynthesis.cancel();
+    }
+    isSpeaking = false;
+    const speakerBtn = document.getElementById('speaker-btn');
+    const speakerIconEl = document.getElementById('speaker-icon');
+    if (speakerBtn) speakerBtn.classList.remove('speaking');
+    if (speakerIconEl) speakerIconEl.className = 'fas fa-volume-up';
 }
 
 // ===== INITIALIZE APP =====
