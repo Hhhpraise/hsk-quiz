@@ -209,36 +209,6 @@ function migrateProgressData(progress) {
 }
 
 // ===== INITIALIZATION =====
-async function init() {
-    try {
-        // Load vocabulary
-        await loadVocabulary();
-
-        // Setup event listeners
-        setupEventListeners();
-
-        // Initialize speaker button
-        initSpeakerButton();
-
-        // Load saved progress (compatible with old system)
-        loadProgress();
-
-        // Check for progress in URL
-        loadProgressFromURL();
-
-        // Generate first question
-        generateQuestion();
-
-        // Hide loading screen
-        loadingScreen.style.display = 'none';
-        mainContainer.style.display = 'block';
-
-    } catch (error) {
-        console.error('Initialization error:', error);
-        loadingScreen.style.display = 'none';
-        errorMessage.style.display = 'flex';
-    }
-}
 
 // ===== VOCABULARY LOADING =====
 async function loadVocabulary() {
@@ -364,6 +334,7 @@ function precomputeSimilarWords() {
 // ===== QUESTION GENERATION =====
 function generateQuestion() {
     stopSpeaking(); // Reset speaker state on new question
+    selectedOption = null; // Always clear any stale selection guard
     const batchWords = getCurrentBatch();
     if (batchWords.length === 0) {
         showCompletionModal();
@@ -391,83 +362,6 @@ function generateQuestion() {
     updateUI();
 }
 
-function generateOptions(correctWord) {
-    const batchWords = getCurrentBatch();
-    const options = [correctWord];
-
-    // Get similar words first
-    const similarWords = similarWordsMap[correctWord.chinese] || [];
-
-    // Add similar words
-    for (const similarWord of similarWords) {
-        if (options.length >= 4) break;
-        if (similarWord.chinese !== correctWord.chinese) {
-            options.push(similarWord);
-        }
-    }
-
-    // Fill remaining with random words
-    while (options.length < 4) {
-        const randomIndex = Math.floor(Math.random() * batchWords.length);
-        const randomWord = batchWords[randomIndex];
-
-        if (!options.some(w => w.chinese === randomWord.chinese)) {
-            options.push(randomWord);
-        }
-    }
-
-    // Deterministic shuffle
-    deterministicShuffle(options, correctWord.chinese);
-
-    // Clear options container
-    optionsEl.innerHTML = '';
-
-    // Create option elements
-    options.forEach((word, index) => {
-        const optionEl = document.createElement('div');
-        optionEl.className = 'option';
-        optionEl.dataset.index = index;
-        optionEl.dataset.correct = word.chinese === correctWord.chinese;
-
-        const content = document.createElement('div');
-        content.className = 'option-content';
-
-        if (isPinyinMode && showEnglishInPinyin) {
-            // Show both pinyin and English
-            const pinyinEl = document.createElement('div');
-            pinyinEl.className = 'option-pinyin';
-            pinyinEl.textContent = word.pinyin;
-
-            const englishEl = document.createElement('div');
-            englishEl.className = 'option-english';
-            englishEl.textContent = word.english;
-
-            content.appendChild(pinyinEl);
-            content.appendChild(englishEl);
-        } else if (isPinyinMode) {
-            // Show only pinyin
-            const text = document.createElement('div');
-            text.className = 'option-text';
-            text.textContent = word.pinyin;
-            content.appendChild(text);
-        } else {
-            // Show only English
-            const text = document.createElement('div');
-            text.className = 'option-text';
-            text.textContent = word.english;
-            content.appendChild(text);
-        }
-
-        optionEl.appendChild(content);
-
-        // Add click event
-        optionEl.addEventListener('click', () => selectOption(optionEl));
-        optionEl.addEventListener('touchstart', handleTouchStart, { passive: true });
-        optionEl.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-        optionsEl.appendChild(optionEl);
-    });
-}
 
 function handleTouchStart(e) {
     this.style.transform = 'scale(0.98)';
@@ -493,76 +387,6 @@ function selectOption(optionEl) {
     setTimeout(() => checkAnswer(optionEl), 300);
 }
 
-function checkAnswer(optionEl) {
-    const isCorrect = optionEl.dataset.correct === 'true';
-    const options = document.querySelectorAll('.option');
-    const currentWord = getCurrentBatch()[currentIndex];
-
-    // Disable all options
-    options.forEach(opt => {
-        opt.style.pointerEvents = 'none';
-    });
-
-    // Highlight correct/incorrect
-    options.forEach(opt => {
-        if (opt.dataset.correct === 'true') {
-            opt.classList.add('correct');
-        } else if (opt === optionEl) {
-            opt.classList.add('incorrect');
-        }
-    });
-
-    // Update stats
-    totalAnswered++;
-    if (isCorrect) {
-        correctCount++;
-        showFeedback('🎉 Correct! Well done!', 'correct');
-
-        // Remove from review words if it was there
-        const index = reviewWords.findIndex(w => w.chinese === currentWord.chinese);
-        if (index > -1) {
-            reviewWords.splice(index, 1);
-            updateReviewButton();
-        }
-    } else {
-        wrongCount++;
-        const correctText = isPinyinMode ?
-            `${currentWord.pinyin} - ${currentWord.english}` :
-            currentWord.english;
-
-        showFeedback(`❌ Incorrect.<br><strong>${correctText}</strong>`, 'incorrect');
-
-        wrongAnswers.push({
-            word: currentWord,
-            selectedAnswer: optionEl.textContent,
-            correctAnswer: correctText
-        });
-
-        // Add to review words if not already there
-        if (!reviewWords.some(w => w.chinese === currentWord.chinese)) {
-            reviewWords.push(currentWord);
-            updateReviewButton();
-        }
-    }
-
-    // Update UI
-    updateUI();
-    saveProgress();
-
-    // Next question after delay if auto-proceed is enabled
-    if (autoProceed) {
-        setTimeout(() => {
-            currentIndex++;
-            selectedOption = null;
-
-            if (currentIndex >= getCurrentBatch().length) {
-                showCompletionModal();
-            } else {
-                generateQuestion();
-            }
-        }, 2000);
-    }
-}
 
 function showFeedback(message, type) {
     feedbackEl.innerHTML = message;
@@ -570,22 +394,8 @@ function showFeedback(message, type) {
     feedbackEl.style.display = 'flex';
 }
 
-function skipQuestion() {
-    currentIndex++;
-    if (currentIndex >= getCurrentBatch().length) {
-        showCompletionModal();
-    } else {
-        selectedOption = null;
-        generateQuestion();
-    }
-}
 
 // ===== BATCH MANAGEMENT =====
-function getCurrentBatch() {
-    const start = currentBatch * batchSize;
-    const end = start + batchSize;
-    return vocabulary.slice(start, Math.min(end, vocabulary.length));
-}
 
 function changeBatchSize(size) {
     if (size === 'all') {
@@ -648,13 +458,6 @@ function updateUI() {
     nextBtn.disabled = currentIndex >= totalQuestions - 1;
 }
 
-function updateBatchInfo() {
-    const totalBatches = Math.ceil(vocabulary.length / batchSize);
-    batchInfoEl.innerHTML = `
-        <i class="fas fa-layer-group"></i>
-        <span>Batch ${currentBatch + 1} of ${totalBatches} (${totalWordsCount} words)</span>
-    `;
-}
 
 function updateReviewButton() {
     const count = reviewWords.length;
@@ -700,83 +503,7 @@ function showModal(modalId) {
     }
 }
 
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-}
 
-function populateCompletionModal() {
-    const batchWords = getCurrentBatch();
-    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
-
-    // Mark batch as completed
-    completedBatches.add(currentBatch);
-
-    // Store performance data
-    batchPerformance[currentBatch] = {
-        correct: correctCount,
-        total: batchWords.length,
-        accuracy: accuracy
-    };
-
-    document.getElementById('completion-body').innerHTML = `
-        <div style="text-align: center; padding: 20px 0;">
-            <div style="font-size: 48px; margin-bottom: 20px;">🎉</div>
-            <h3 style="margin-bottom: 20px;">Batch Complete!</h3>
-
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
-                <div class="stat-card">
-                    <div class="stat-value">${batchWords.length}</div>
-                    <div class="stat-label">Total</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${correctCount}</div>
-                    <div class="stat-label">Correct</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${wrongCount}</div>
-                    <div class="stat-label">Wrong</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${accuracy}%</div>
-                    <div class="stat-label">Accuracy</div>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 12px;">
-                ${reviewWords.length > 0 ? `
-                    <button class="action-btn secondary" id="completion-review-btn" style="flex: 1;">
-                        Review Mistakes
-                    </button>
-                ` : ''}
-                <button class="action-btn primary" id="completion-next-btn" style="flex: 1;">
-                    Next Batch
-                </button>
-            </div>
-        </div>
-    `;
-
-    // Add event listeners for modal buttons
-    document.getElementById('completion-review-btn')?.addEventListener('click', () => {
-        closeModal('completion-modal');
-        showModal('review-modal');
-    });
-
-    document.getElementById('completion-next-btn')?.addEventListener('click', () => {
-        currentBatch++;
-        currentIndex = 0;
-        correctCount = 0;
-        wrongCount = 0;
-        totalAnswered = 0;
-        generateQuestion();
-        updateBatchInfo();
-        closeModal('completion-modal');
-        saveProgress();
-    });
-}
 
 function populateReviewModal() {
     if (reviewWords.length === 0) {
@@ -1043,21 +770,6 @@ function populateSettingsModal() {
 }
 
 // ===== REVIEW SESSION =====
-function startReviewSession() {
-    if (reviewWords.length === 0) return;
-
-    // Use review words as current batch temporarily
-    isReviewMode = true;
-    currentIndex = 0;
-    correctCount = 0;
-    wrongCount = 0;
-    totalAnswered = 0;
-
-    closeModal('review-modal');
-    generateQuestion();
-    updateUI();
-    saveProgress();
-}
 
 // ===== SETTINGS FUNCTIONS =====
 function resetCurrentBatch() {
@@ -1213,6 +925,19 @@ function setupEventListeners() {
 
     autoProceedToggle.addEventListener('change', (e) => {
         autoProceed = e.target.checked;
+        if (autoProceed && selectedOption) {
+            // Re-enabled while an answer was already given — advance now
+            const isLastQuestion = currentIndex >= getCurrentBatch().length - 1;
+            if (!isLastQuestion) {
+                setTimeout(() => {
+                    currentIndex++;
+                    generateQuestion();
+                }, 600);
+            }
+        } else if (!autoProceed && selectedOption) {
+            // Turned off while locked on an answered question — reset it
+            generateQuestion();
+        }
         saveProgress();
     });
 
@@ -1291,47 +1016,6 @@ function switchMode(isPinyin) {
     saveProgress();
 }
 // Add this function to handle batch completion
-function completeCurrentBatch() {
-    const batchWords = getCurrentBatch();
-    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
-
-    // Mark batch as completed
-    completedBatches.add(currentBatch);
-
-    // Store performance data
-    batchPerformance[currentBatch] = {
-        correct: correctCount,
-        total: batchWords.length,
-        accuracy: accuracy
-    };
-
-    // Check if this is the last batch
-    const totalBatches = Math.ceil(vocabulary.length / batchSize);
-    const isLastBatch = currentBatch >= totalBatches - 1;
-
-    if (isLastBatch) {
-        // If last batch, show completion with different options
-        showCompletionModal(true);
-    } else {
-        // Auto-advance to next batch after a delay
-        setTimeout(() => {
-            currentBatch++;
-            currentIndex = 0;
-            correctCount = 0;
-            wrongCount = 0;
-            totalAnswered = 0;
-            selectedOption = null;
-
-            // Show quick notification instead of full modal
-            showQuickNotification(`Moving to Batch ${currentBatch + 1}`);
-
-            // Generate new batch question
-            generateQuestion();
-            updateBatchInfo();
-            saveProgress();
-        }, 1500);
-    }
-}
 
 // Add this helper function for notifications
 function showQuickNotification(message) {
@@ -1361,79 +1045,6 @@ function showQuickNotification(message) {
 }
 
 // Update the checkAnswer function to use completeCurrentBatch
-function checkAnswer(optionEl) {
-    const isCorrect = optionEl.dataset.correct === 'true';
-    const options = document.querySelectorAll('.option');
-    const currentWord = getCurrentBatch()[currentIndex];
-
-    // Disable all options
-    options.forEach(opt => {
-        opt.style.pointerEvents = 'none';
-    });
-
-    // Highlight correct/incorrect
-    options.forEach(opt => {
-        if (opt.dataset.correct === 'true') {
-            opt.classList.add('correct');
-        } else if (opt === optionEl) {
-            opt.classList.add('incorrect');
-        }
-    });
-
-    // Update stats
-    totalAnswered++;
-    if (isCorrect) {
-        correctCount++;
-        showFeedback('🎉 Correct! Well done!', 'correct');
-
-        // Remove from review words if it was there
-        const index = reviewWords.findIndex(w => w.chinese === currentWord.chinese);
-        if (index > -1) {
-            reviewWords.splice(index, 1);
-            updateReviewButton();
-        }
-    } else {
-        wrongCount++;
-        const correctText = isPinyinMode ?
-            `${currentWord.pinyin} - ${currentWord.english}` :
-            currentWord.english;
-
-        showFeedback(`❌ Incorrect.<br><strong>${correctText}</strong>`, 'incorrect');
-
-        wrongAnswers.push({
-            word: currentWord,
-            selectedAnswer: optionEl.textContent,
-            correctAnswer: correctText
-        });
-
-        // Add to review words if not already there
-        if (!reviewWords.some(w => w.chinese === currentWord.chinese)) {
-            reviewWords.push(currentWord);
-            updateReviewButton();
-        }
-    }
-
-    // Update UI
-    updateUI();
-    saveProgress();
-
-    // Check if this was the last question in the batch
-    const isLastQuestion = currentIndex >= getCurrentBatch().length - 1;
-
-    if (isLastQuestion) {
-        // If last question, complete the batch after delay
-        setTimeout(() => {
-            completeCurrentBatch();
-        }, 2000);
-    } else if (autoProceed) {
-        // If not last question and auto-proceed is enabled, move to next question
-        setTimeout(() => {
-            currentIndex++;
-            selectedOption = null;
-            generateQuestion();
-        }, 2000);
-    }
-}
 
 // Update the skipQuestion function
 function skipQuestion() {
@@ -1571,6 +1182,9 @@ async function init() {
         // Generate first question
         generateQuestion();
 
+        // Wire up the speaker button (must be after DOM is visible)
+        initSpeakerButton();
+
         // Hide loading screen
         loadingScreen.style.display = 'none';
         mainContainer.style.display = 'block';
@@ -1589,63 +1203,8 @@ let reviewSessionOriginalBatch = null;
 let reviewSessionOriginalIndex = null;
 
 // Update the startReviewSession function
-function startReviewSession() {
-    if (reviewWords.length === 0) return;
-
-    // Save current state to return to later
-    reviewSessionOriginalBatch = currentBatch;
-    reviewSessionOriginalIndex = currentIndex;
-
-    // Set up review session
-    isReviewMode = true;
-    currentIndex = 0;
-    correctCount = 0;
-    wrongCount = 0;
-    totalAnswered = 0;
-    selectedOption = null;
-
-    // Close modal and update UI
-    closeModal('review-modal');
-
-    // Update header to show we're in review mode
-    document.getElementById('app-title').textContent = 'Review Session';
-    document.getElementById('app-subtitle').textContent = 'Practicing words you missed';
-
-    // Show a notification
-    showQuickNotification(`Starting review session with ${reviewWords.length} words`);
-
-    // Generate first review question
-    generateQuestion();
-    updateUI();
-    updateReviewButton();
-    saveProgress();
-}
 
 // Add a function to end review session
-function endReviewSession() {
-    if (!isReviewMode) return;
-
-    // Restore original state
-    isReviewMode = false;
-    if (reviewSessionOriginalBatch !== null) {
-        currentBatch = reviewSessionOriginalBatch;
-    }
-    if (reviewSessionOriginalIndex !== null) {
-        currentIndex = reviewSessionOriginalIndex;
-    }
-
-    reviewSessionOriginalBatch = null;
-    reviewSessionOriginalIndex = null;
-
-    // Restore original title
-    document.getElementById('app-title').textContent = 'HSK Quiz';
-    document.getElementById('app-subtitle').textContent = 'Match Chinese characters to their meanings';
-
-    // Generate question from original batch
-    generateQuestion();
-    updateUI();
-    saveProgress();
-}
 
 // Update the getCurrentBatch function to handle review mode
 function getCurrentBatch() {
@@ -2104,128 +1663,75 @@ function endReviewSession() {
 
 
 // ===== TEXT-TO-SPEECH (SPEAKER BUTTON) =====
-// Primary:  Youdao Dictionary TTS  — works perfectly in China, no API key needed
-// Fallback: Web Speech API         — uses the OS built-in zh-CN voice (installed on
-//                                    virtually every Chinese phone/PC/Mac)
+console.log('%c SPEAKER-FIX-v5 ✓ ', 'background:#4361ee;color:white;padding:2px 6px;border-radius:3px');
 
 let isSpeaking = false;
-let ttsAudio   = null;
 
-// ---- Audio element approach (Youdao) ----
-function buildTtsUrl(text) {
-    // Youdao dict audio — reliable in China, free, no key
-    return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=1';
-}
-
-function setSpeakerState(speaking) {
-    isSpeaking = speaking;
-    const btn = document.getElementById('speaker-btn');
-    if (btn) btn.classList.toggle('speaking', speaking);
-}
-
-function speakWithAudio(text) {
-    if (!ttsAudio) {
-        ttsAudio = new Audio();
-    } else {
-        ttsAudio.pause();
-        ttsAudio.onended = null;
-        ttsAudio.onerror = null;
-    }
-
-    ttsAudio.src = buildTtsUrl(text);
-    ttsAudio.playbackRate = 0.9;
-
-    ttsAudio.onended = () => setSpeakerState(false);
-    ttsAudio.onerror = () => {
-        // Youdao failed — try Web Speech as last resort
-        setSpeakerState(false);
-        speakWithWebSpeech(text);
-    };
-
-    const p = ttsAudio.play();
-    if (p && typeof p.catch === 'function') {
-        p.catch(() => {
-            setSpeakerState(false);
-            speakWithWebSpeech(text);
-        });
-    }
-}
-
-// ---- Web Speech API fallback ----
-function speakWithWebSpeech(text) {
-    if (!('speechSynthesis' in window)) return;
-
-    setSpeakerState(true);
-    window.speechSynthesis.cancel();
-
-    const go = () => {
-        const utter  = new SpeechSynthesisUtterance(text);
-        utter.lang   = 'zh-CN';
-        utter.rate   = 0.85;
-        utter.volume = 1.0;
-        utter.pitch  = 1.0;
-
-        const voices = window.speechSynthesis.getVoices();
-        const zh = voices.find(v => v.lang === 'zh-CN')
-                || voices.find(v => v.lang === 'zh-TW')
-                || voices.find(v => v.lang.startsWith('zh'));
-        if (zh) utter.voice = zh;
-
-        utter.onend   = () => setSpeakerState(false);
-        utter.onerror = (e) => {
-            if (e.error !== 'interrupted' && e.error !== 'canceled') setSpeakerState(false);
-        };
-
-        window.speechSynthesis.speak(utter);
-    };
-
-    // Voices load async in Chrome/Safari — wait for them
-    const voices = window.speechSynthesis.getVoices();
-    if (voices && voices.length > 0) {
-        setTimeout(go, 50);
-    } else {
-        window.speechSynthesis.onvoiceschanged = () => {
-            window.speechSynthesis.onvoiceschanged = null;
-            setTimeout(go, 50);
-        };
-        setTimeout(go, 800); // hard timeout if event never fires
-    }
-}
-
-// ---- Main entry point ----
 function speakCurrentWord() {
-    // Stop if already playing
-    if (isSpeaking) {
-        if (ttsAudio) { ttsAudio.pause(); ttsAudio.currentTime = 0; }
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-        setSpeakerState(false);
+    if (!window.speechSynthesis) return;
+
+    if (window.speechSynthesis.speaking || isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        const btn = document.getElementById('speaker-btn');
+        if (btn) btn.classList.remove('speaking');
         return;
     }
 
     const batchWords = getCurrentBatch();
-    if (!batchWords || batchWords.length === 0) return;
+    if (!batchWords || !batchWords.length) return;
     const word = batchWords[currentIndex];
     if (!word || !word.chinese) return;
 
-    setSpeakerState(true);
-    speakWithAudio(word.chinese);
+    function doSpeak() {
+        const voices = window.speechSynthesis.getVoices();
+        window.speechSynthesis.cancel();
+        setTimeout(function() {
+            const u = new SpeechSynthesisUtterance(word.chinese);
+            u.lang = 'zh-CN';
+            u.rate = 0.85;
+            u.volume = 1.0;
+            if (voices && voices.length) {
+                const zh = voices.find(function(v){return v.lang==='zh-CN';})
+                        || voices.find(function(v){return v.lang.startsWith('zh');});
+                if (zh) u.voice = zh;
+            }
+            const btn = document.getElementById('speaker-btn');
+            u.onstart = function(){ isSpeaking=true; if(btn) btn.classList.add('speaking'); };
+            u.onend   = function(){ isSpeaking=false; if(btn) btn.classList.remove('speaking'); };
+            u.onerror = function(){ isSpeaking=false; if(btn) btn.classList.remove('speaking'); };
+            window.speechSynthesis.speak(u);
+        }, 100);
+    }
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+        doSpeak();
+    } else {
+        window.speechSynthesis.onvoiceschanged = function() {
+            window.speechSynthesis.onvoiceschanged = null;
+            doSpeak();
+        };
+    }
 }
 
 function stopSpeaking() {
-    if (ttsAudio) { ttsAudio.pause(); ttsAudio.currentTime = 0; }
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    setSpeakerState(false);
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isSpeaking = false;
+    const btn = document.getElementById('speaker-btn');
+    if (btn) btn.classList.remove('speaking');
 }
 
 function initSpeakerButton() {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.getVoices(); // warm up
+
     const btn = document.getElementById('speaker-btn');
     if (!btn) return;
-
-    btn.addEventListener('click', speakCurrentWord);
-    btn.addEventListener('touchend', (e) => {
-        e.preventDefault(); // prevent ghost click on mobile
+    btn.onclick = function(e) {
+        e.stopPropagation();
         speakCurrentWord();
-    });
+    };
 }
 
 // ===== INITIALIZE APP =====
