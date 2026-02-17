@@ -18,6 +18,15 @@ let navigationPosition = -1;
 let similarWordsMap = {}; // For similar words matching
 let totalWordsCount = 0;
 
+// ===== LEVEL SYSTEM =====
+let allLevelsData = null;   // Populated when JSON has the new multi-level format
+let currentLevel = null;    // e.g. "1", "2", … or null for legacy single-level
+
+// Dynamic storage key so each level has its own saved progress
+function progressKey() {
+    return currentLevel ? `hskQuizProgress_level_${currentLevel}` : 'hskQuizProgress';
+}
+
 // Progress version for compatibility
 const PROGRESS_VERSION = 3;
 
@@ -130,12 +139,12 @@ function saveProgress() {
         soundEnabled
     };
 
-    localStorage.setItem('hskQuizProgress', JSON.stringify(progressData));
+    localStorage.setItem(progressKey(), JSON.stringify(progressData));
     showSyncIndicator();
 }
 
 function loadProgress() {
-    const savedProgress = localStorage.getItem('hskQuizProgress');
+    const savedProgress = localStorage.getItem(progressKey());
     if (!savedProgress) return;
 
     try {
@@ -214,7 +223,7 @@ function migrateProgressData(progress) {
 async function loadVocabulary() {
     try {
         // Try multiple paths for compatibility
-        const paths = ['./vocabulary.json', 'vocabulary.json', '/vocabulary.json'];
+        const paths = ['./hsk_vocabulary.json', 'hsk_vocabulary.json', '/hsk_vocabulary.json'];
         let response;
 
         for (const path of paths) {
@@ -231,19 +240,29 @@ async function loadVocabulary() {
         }
 
         const data = await response.json();
+
+        // ── NEW multi-level format ─────────────────────────────────────
+        if (data.levels) {
+            allLevelsData = data.levels;
+            // If a level was already chosen (e.g. returned from picker), use it;
+            // otherwise show the picker.
+            if (!currentLevel) {
+                showLevelPicker();
+                return; // init will continue after the user picks a level
+            }
+            loadLevelData(currentLevel);
+            return;
+        }
+
+        // ── OLD single-level format ────────────────────────────────────
+        allLevelsData = null;
+        currentLevel = null;
         vocabulary = data.words || [];
         totalWordsCount = vocabulary.length;
-
-        // Update settings word count
         settingsWordCount.textContent = totalWordsCount;
-
-        // Sort alphabetically for consistent batches (like old code)
         vocabulary.sort((a, b) => a.chinese.localeCompare(b.chinese));
-
-        // Precompute similar words
         precomputeSimilarWords();
 
-        // Update title with level info if provided
         if (data.level) {
             appTitleEl.textContent = `HSK ${data.level} Quiz`;
             appSubtitleEl.textContent = data.description || 'Match Chinese characters to their meanings';
@@ -252,6 +271,8 @@ async function loadVocabulary() {
     } catch (error) {
         console.error('Error loading vocabulary:', error);
         // Fallback sample data
+        allLevelsData = null;
+        currentLevel = null;
         vocabulary = [
             { chinese: "爱", pinyin: "ài", english: "love" },
             { chinese: "朋友", pinyin: "péngyou", english: "friend" },
@@ -268,6 +289,112 @@ async function loadVocabulary() {
         settingsWordCount.textContent = totalWordsCount;
         precomputeSimilarWords();
     }
+}
+
+// ── Load a specific level's words into the quiz engine ──────────────
+function loadLevelData(levelKey) {
+    const levelData = allLevelsData[levelKey];
+    if (!levelData) return;
+
+    currentLevel = levelKey;
+    vocabulary = levelData.words || [];
+    totalWordsCount = vocabulary.length;
+    settingsWordCount.textContent = totalWordsCount;
+    vocabulary.sort((a, b) => a.chinese.localeCompare(b.chinese));
+    precomputeSimilarWords();
+
+    // Update header
+    appTitleEl.textContent = `HSK Level ${levelKey} Quiz`;
+    appSubtitleEl.textContent = levelData.description || 'Match Chinese characters to their meanings';
+
+    // Update "current level" span in Settings if it exists
+    const lvlEl = document.getElementById('settings-current-level');
+    if (lvlEl) lvlEl.textContent = `Level ${levelKey} (${totalWordsCount} words)`;
+}
+
+// ── Level Picker ─────────────────────────────────────────────────────
+function showLevelPicker() {
+    const pickerScreen = document.getElementById('level-picker-screen');
+    const grid = document.getElementById('level-cards-grid');
+    if (!pickerScreen || !grid) return;
+
+    grid.innerHTML = '';
+
+    Object.entries(allLevelsData)
+        .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+        .forEach(([levelKey, levelData]) => {
+            // Check if there is saved progress for this level
+            const hasSaved = !!localStorage.getItem(`hskQuizProgress_level_${levelKey}`);
+            let savedInfo = '';
+            if (hasSaved) {
+                try {
+                    const p = JSON.parse(localStorage.getItem(`hskQuizProgress_level_${levelKey}`));
+                    const acc = p.totalAnswered > 0
+                        ? Math.round((p.correctCount / p.totalAnswered) * 100)
+                        : 0;
+                    const completed = (p.completedBatches || []).length;
+                    const totalBatches = Math.ceil((p.totalWordsCount || levelData.totalWords) / (p.batchSize || 50));
+                    savedInfo = `<div class="level-card-progress">
+                        <span>${completed}/${totalBatches} batches · ${acc}% accuracy</span>
+                    </div>`;
+                } catch(e) {}
+            }
+
+            const card = document.createElement('div');
+            card.className = 'level-card';
+            card.innerHTML = `
+                <div class="level-card-badge">Level ${levelKey}</div>
+                <div class="level-card-words">${levelData.totalWords} words</div>
+                ${savedInfo || `<div class="level-card-new">New</div>`}
+            `;
+            card.addEventListener('click', () => pickLevel(levelKey));
+            grid.appendChild(card);
+        });
+
+    // Hide main container, show picker
+    mainContainer.style.display = 'none';
+    pickerScreen.style.display = 'flex';
+}
+
+function pickLevel(levelKey) {
+    const pickerScreen = document.getElementById('level-picker-screen');
+    const isFirstPick = mainContainer.style.display === 'none';
+
+    // Reset quiz state for the new level
+    currentBatch = 0;
+    currentIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    totalAnswered = 0;
+    reviewWords = [];
+    wrongAnswers = [];
+    completedBatches = new Set();
+    batchPerformance = {};
+    isReviewMode = false;
+    selectedOption = null;
+
+    // Load the chosen level's words
+    loadLevelData(levelKey);
+
+    // Restore any saved progress for this level
+    loadProgress();
+
+    // Hide picker, show main app
+    pickerScreen.style.display = 'none';
+    mainContainer.style.display = 'block';
+
+    // On the very first pick we need to finish init (event listeners etc.)
+    if (isFirstPick) {
+        setupEventListeners();
+        loadProgressFromURL();
+        initSpeakerButton();
+    }
+
+    // Generate first question
+    generateQuestion();
+    updateUI();
+    updateBatchInfo();
+    updateReviewButton();
 }
 
 function precomputeSimilarWords() {
@@ -764,9 +891,23 @@ function populateBatchSelectModal() {
 }
 
 function populateSettingsModal() {
-    // Settings are already populated by loadProgress()
-    // Just update word count
+    // Update word count
     settingsWordCount.textContent = totalWordsCount;
+
+    // Update current level display
+    const lvlEl = document.getElementById('settings-current-level');
+    if (lvlEl) {
+        lvlEl.textContent = currentLevel
+            ? `Level ${currentLevel} (${totalWordsCount} words)`
+            : `Single level (${totalWordsCount} words)`;
+    }
+
+    // Show/hide the "Change Level" button depending on format
+    const changeLevelBtn = document.getElementById('change-level-btn');
+    if (changeLevelBtn) {
+        const row = changeLevelBtn.closest('.settings-option');
+        if (row) row.style.display = allLevelsData ? 'flex' : 'none';
+    }
 }
 
 // ===== REVIEW SESSION =====
@@ -794,8 +935,16 @@ function resetCurrentBatch() {
 
 function resetAllProgress() {
     if (confirm('Reset ALL progress? This will clear all your saved progress and cannot be undone.')) {
+        // Remove current level's key and legacy keys
+        localStorage.removeItem(progressKey());
         localStorage.removeItem('hskQuizProgress');
-        localStorage.removeItem('hsk4-progress'); // Also remove old format
+        localStorage.removeItem('hsk4-progress');
+        // Also wipe progress for all other levels if multi-level data exists
+        if (allLevelsData) {
+            Object.keys(allLevelsData).forEach(lvl => {
+                localStorage.removeItem(`hskQuizProgress_level_${lvl}`);
+            });
+        }
         currentBatch = 0;
         currentIndex = 0;
         correctCount = 0;
@@ -949,6 +1098,17 @@ function setupEventListeners() {
     // Reset buttons
     resetBatchBtn.addEventListener('click', resetCurrentBatch);
     resetAllBtn.addEventListener('click', resetAllProgress);
+
+    // Change level button (only present when multi-level JSON is loaded)
+    const changeLevelBtn = document.getElementById('change-level-btn');
+    if (changeLevelBtn) {
+        changeLevelBtn.addEventListener('click', () => {
+            closeModal('settings-modal');
+            if (allLevelsData) {
+                showLevelPicker();
+            }
+        });
+    }
 
     // Modal close buttons
     modalCloseBtns.forEach(btn => {
@@ -1167,8 +1327,16 @@ async function init() {
         `;
         document.head.appendChild(style);
 
-        // Load vocabulary
+        // Load vocabulary (may show level picker and return early for multi-level)
         await loadVocabulary();
+
+        // If the level picker is now visible, stop here — pickLevel() will
+        // finish the rest of init once the user makes a choice.
+        const pickerScreen = document.getElementById('level-picker-screen');
+        if (pickerScreen && pickerScreen.style.display !== 'none') {
+            loadingScreen.style.display = 'none';
+            return;
+        }
 
         // Setup event listeners
         setupEventListeners();

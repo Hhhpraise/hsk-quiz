@@ -17,6 +17,20 @@
         <div class="loading-text">Loading HSK Vocabulary</div>
     </div>
 
+    <!-- Level Picker Screen -->
+    <div class="level-picker-screen" id="level-picker-screen" style="display:none;">
+        <div class="level-picker-inner">
+            <div class="level-picker-header">
+                <i class="fas fa-language"></i>
+                <h1>HSK Vocabulary Master</h1>
+                <p>Choose a level to study</p>
+            </div>
+            <div class="level-cards-grid" id="level-cards-grid">
+                <!-- Filled by JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <!-- Error Message -->
     <div class="error-message" id="error-message">
         <i class="fas fa-exclamation-triangle"></i>
@@ -270,6 +284,12 @@
                 <div class="settings-section">
                     <h4>Data Management</h4>
                     <div class="settings-option">
+                        <div class="settings-label">Change Level</div>
+                        <button class="action-btn secondary" id="change-level-btn">
+                            <i class="fas fa-layer-group"></i> Change
+                        </button>
+                    </div>
+                    <div class="settings-option">
                         <div class="settings-label">Reset Current Batch</div>
                         <button class="action-btn secondary" id="reset-batch-btn">Reset</button>
                     </div>
@@ -284,6 +304,7 @@
                     <p style="color: #8e8e93; font-size: 14px;">
                         HSK Vocabulary Master v1.0<br>
                         Progress system compatible with old version<br>
+                        Current level: <span id="settings-current-level">—</span><br>
                         Total words: <span id="settings-word-count">0</span>
                     </p>
                 </div>

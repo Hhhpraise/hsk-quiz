@@ -1127,7 +1127,162 @@ input:checked + .slider:before {
     box-shadow: 0 4px 12px rgba(108, 138, 255, 0.35);
 }
 
-[data-theme="dark"] .speaker-btn.not-supported {
-    border-color: #48484a;
-    color: #48484a;
+
+/* ===== LEVEL PICKER SCREEN ===== */
+.level-picker-screen {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    overflow-y: auto;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.level-picker-inner {
+    width: 100%;
+    max-width: 700px;
+    padding: 32px 20px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+}
+
+.level-picker-header {
+    text-align: center;
+    color: white;
+}
+
+.level-picker-header i {
+    font-size: 52px;
+    margin-bottom: 14px;
+    display: block;
+    opacity: 0.9;
+}
+
+.level-picker-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.level-picker-header p {
+    font-size: 16px;
+    opacity: 0.75;
+    font-weight: 400;
+}
+
+/* Grid of level cards */
+.level-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    width: 100%;
+}
+
+/* Individual level card */
+.level-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 22px 16px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    color: white;
+    backdrop-filter: blur(8px);
+}
+
+.level-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(67,97,238,0.3), rgba(114,9,183,0.3));
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    border-radius: inherit;
+}
+
+.level-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.level-card:hover::before {
+    opacity: 1;
+}
+
+.level-card:active {
+    transform: scale(0.97);
+}
+
+.level-card-badge {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+}
+
+.level-card-words {
+    font-size: 13px;
+    opacity: 0.7;
+    position: relative;
+    z-index: 1;
+}
+
+.level-card-new {
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(67, 97, 238, 0.6);
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+}
+
+.level-card-progress {
+    font-size: 11px;
+    opacity: 0.75;
+    background: rgba(76, 217, 100, 0.2);
+    border: 1px solid rgba(76, 217, 100, 0.4);
+    padding: 4px 10px;
+    border-radius: 20px;
+    line-height: 1.4;
+    position: relative;
+    z-index: 1;
+    color: #a8f0b8;
+}
+
+/* Responsive tweaks for small screens */
+@media (max-width: 480px) {
+    .level-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .level-picker-header h1 {
+        font-size: 22px;
+    }
+
+    .level-card {
+        padding: 18px 12px 14px;
+    }
+
+    .level-card-badge {
+        font-size: 17px;
+    }
 }
