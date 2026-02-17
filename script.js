@@ -2104,115 +2104,128 @@ function endReviewSession() {
 
 
 // ===== TEXT-TO-SPEECH (SPEAKER BUTTON) =====
-let speechSynthesisSupported = 'speechSynthesis' in window;
+// Primary:  Youdao Dictionary TTS  — works perfectly in China, no API key needed
+// Fallback: Web Speech API         — uses the OS built-in zh-CN voice (installed on
+//                                    virtually every Chinese phone/PC/Mac)
+
 let isSpeaking = false;
+let ttsAudio   = null;
 
-// Preferred Chinese voice (cached after first lookup)
-let chineseVoice = null;
-
-function getChineseVoice() {
-    if (chineseVoice) return chineseVoice;
-    const voices = window.speechSynthesis.getVoices();
-    // Prefer Mandarin/Chinese voices
-    const preferred = voices.find(v =>
-        v.lang === 'zh-CN' || v.lang === 'zh-TW' ||
-        v.lang === 'zh' || v.lang.startsWith('zh-')
-    );
-    chineseVoice = preferred || null;
-    return chineseVoice;
+// ---- Audio element approach (Youdao) ----
+function buildTtsUrl(text) {
+    // Youdao dict audio — reliable in China, free, no key
+    return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=1';
 }
 
-// Voices may load asynchronously — refresh cache when they do
-if (speechSynthesisSupported) {
-    window.speechSynthesis.onvoiceschanged = () => {
-        chineseVoice = null; // reset cache so next call re-fetches
-        getChineseVoice();
+function setSpeakerState(speaking) {
+    isSpeaking = speaking;
+    const btn = document.getElementById('speaker-btn');
+    if (btn) btn.classList.toggle('speaking', speaking);
+}
+
+function speakWithAudio(text) {
+    if (!ttsAudio) {
+        ttsAudio = new Audio();
+    } else {
+        ttsAudio.pause();
+        ttsAudio.onended = null;
+        ttsAudio.onerror = null;
+    }
+
+    ttsAudio.src = buildTtsUrl(text);
+    ttsAudio.playbackRate = 0.9;
+
+    ttsAudio.onended = () => setSpeakerState(false);
+    ttsAudio.onerror = () => {
+        // Youdao failed — try Web Speech as last resort
+        setSpeakerState(false);
+        speakWithWebSpeech(text);
     };
+
+    const p = ttsAudio.play();
+    if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+            setSpeakerState(false);
+            speakWithWebSpeech(text);
+        });
+    }
 }
 
-function speakCurrentWord() {
-    const speakerBtn = document.getElementById('speaker-btn');
-    const speakerIconEl = document.getElementById('speaker-icon');
+// ---- Web Speech API fallback ----
+function speakWithWebSpeech(text) {
+    if (!('speechSynthesis' in window)) return;
 
-    if (!speechSynthesisSupported) {
-        speakerBtn.classList.add('not-supported');
-        speakerBtn.title = 'Speech not supported in this browser';
+    setSpeakerState(true);
+    window.speechSynthesis.cancel();
+
+    const go = () => {
+        const utter  = new SpeechSynthesisUtterance(text);
+        utter.lang   = 'zh-CN';
+        utter.rate   = 0.85;
+        utter.volume = 1.0;
+        utter.pitch  = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const zh = voices.find(v => v.lang === 'zh-CN')
+                || voices.find(v => v.lang === 'zh-TW')
+                || voices.find(v => v.lang.startsWith('zh'));
+        if (zh) utter.voice = zh;
+
+        utter.onend   = () => setSpeakerState(false);
+        utter.onerror = (e) => {
+            if (e.error !== 'interrupted' && e.error !== 'canceled') setSpeakerState(false);
+        };
+
+        window.speechSynthesis.speak(utter);
+    };
+
+    // Voices load async in Chrome/Safari — wait for them
+    const voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+        setTimeout(go, 50);
+    } else {
+        window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.onvoiceschanged = null;
+            setTimeout(go, 50);
+        };
+        setTimeout(go, 800); // hard timeout if event never fires
+    }
+}
+
+// ---- Main entry point ----
+function speakCurrentWord() {
+    // Stop if already playing
+    if (isSpeaking) {
+        if (ttsAudio) { ttsAudio.pause(); ttsAudio.currentTime = 0; }
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        setSpeakerState(false);
         return;
     }
 
-    // Get the current word
     const batchWords = getCurrentBatch();
     if (!batchWords || batchWords.length === 0) return;
     const word = batchWords[currentIndex];
-    if (!word) return;
+    if (!word || !word.chinese) return;
 
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
+    setSpeakerState(true);
+    speakWithAudio(word.chinese);
+}
 
-    if (isSpeaking) {
-        // Toggle off if already speaking
-        isSpeaking = false;
-        speakerBtn.classList.remove('speaking');
-        speakerIconEl.className = 'fas fa-volume-up';
-        return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(word.chinese);
-    utterance.lang = 'zh-CN';
-    utterance.rate = 0.85;   // Slightly slower — better for learning
-    utterance.pitch = 1.0;
-
-    const voice = getChineseVoice();
-    if (voice) utterance.voice = voice;
-
-    utterance.onstart = () => {
-        isSpeaking = true;
-        speakerBtn.classList.add('speaking');
-        speakerIconEl.className = 'fas fa-volume-up';
-    };
-
-    utterance.onend = () => {
-        isSpeaking = false;
-        speakerBtn.classList.remove('speaking');
-        speakerIconEl.className = 'fas fa-volume-up';
-    };
-
-    utterance.onerror = () => {
-        isSpeaking = false;
-        speakerBtn.classList.remove('speaking');
-        speakerIconEl.className = 'fas fa-volume-up';
-    };
-
-    window.speechSynthesis.speak(utterance);
+function stopSpeaking() {
+    if (ttsAudio) { ttsAudio.pause(); ttsAudio.currentTime = 0; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setSpeakerState(false);
 }
 
 function initSpeakerButton() {
-    const speakerBtn = document.getElementById('speaker-btn');
-    if (!speakerBtn) return;
+    const btn = document.getElementById('speaker-btn');
+    if (!btn) return;
 
-    if (!speechSynthesisSupported) {
-        speakerBtn.classList.add('not-supported');
-        speakerBtn.title = 'Speech synthesis not supported in this browser';
-        return;
-    }
-
-    speakerBtn.addEventListener('click', speakCurrentWord);
-    speakerBtn.addEventListener('touchend', (e) => {
-        e.preventDefault(); // Prevent double-fire on mobile
+    btn.addEventListener('click', speakCurrentWord);
+    btn.addEventListener('touchend', (e) => {
+        e.preventDefault(); // prevent ghost click on mobile
         speakCurrentWord();
     });
-}
-
-// Stop speaking when moving to a new question (so the animation resets)
-function stopSpeaking() {
-    if (speechSynthesisSupported) {
-        window.speechSynthesis.cancel();
-    }
-    isSpeaking = false;
-    const speakerBtn = document.getElementById('speaker-btn');
-    const speakerIconEl = document.getElementById('speaker-icon');
-    if (speakerBtn) speakerBtn.classList.remove('speaking');
-    if (speakerIconEl) speakerIconEl.className = 'fas fa-volume-up';
 }
 
 // ===== INITIALIZE APP =====
