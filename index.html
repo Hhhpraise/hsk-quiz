@@ -4,144 +4,180 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#4F46E5">
     <title>HSK Vocabulary Master</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
 </head>
 <body data-theme="light">
-    <!-- Loading Screen -->
+
+    <!-- ============ LOADING SCREEN ============ -->
     <div class="loading-screen" id="loading-screen">
+        <div class="loading-logo"><i class="fas fa-language"></i></div>
         <div class="loading-spinner"></div>
         <div class="loading-text">Loading HSK Vocabulary</div>
     </div>
 
-    <!-- Level Picker Screen -->
-    <div class="level-picker-screen" id="level-picker-screen" style="display:none;">
-        <div class="level-picker-inner">
-            <div class="level-picker-header">
-                <i class="fas fa-language"></i>
-                <h1>HSK Vocabulary Master</h1>
-                <p>Choose a level to study</p>
-            </div>
-            <div class="level-cards-grid" id="level-cards-grid">
-                <!-- Filled by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Error Message -->
-    <div class="error-message" id="error-message">
+    <!-- ============ ERROR BANNER ============ -->
+    <div class="error-banner" id="error-banner">
         <i class="fas fa-exclamation-triangle"></i>
-        Failed to load vocabulary. Please check that vocabulary.json exists.
+        <span>Failed to load vocabulary. Please check your connection and refresh.</span>
     </div>
 
-    <!-- Sync Indicator -->
-    <div class="sync-indicator" id="sync-indicator">
+    <!-- ============ SYNC TOAST ============ -->
+    <div class="sync-toast" id="sync-toast">
         <i class="fas fa-check-circle"></i> Progress Saved
     </div>
 
-    <div class="container" style="display: none;" id="main-container">
+    <!-- ============ LEVEL PICKER SCREEN ============ -->
+    <div class="level-picker-screen" id="level-picker-screen" style="display:none;">
+        <div class="level-picker-inner">
+            <div class="level-picker-header">
+                <span class="lp-icon"><i class="fas fa-language"></i></span>
+                <h1>HSK Vocabulary Master</h1>
+                <p>Choose a level to start studying</p>
+            </div>
+            <div class="level-cards-grid" id="level-cards-grid"></div>
+        </div>
+    </div>
+
+    <!-- ============ MAIN APP ============ -->
+    <div class="app-container" id="app-container" style="display:none;">
+
         <!-- Header -->
-        <header class="header">
+        <header class="app-header">
             <div class="header-top">
-                <h1 class="title">
-                    <i class="fas fa-language"></i>
-                    <span id="app-title">HSK Quiz</span>
-                </h1>
+                <div class="header-info">
+                    <h1 class="header-title">
+                        <i class="fas fa-language"></i>
+                        <span id="app-title">HSK Quiz</span>
+                    </h1>
+                    <p class="header-subtitle" id="app-subtitle">Match Chinese characters to their meanings</p>
+                </div>
                 <div class="header-actions">
+                    <button class="icon-btn" id="srs-header-btn" title="SRS Review due" style="display:none;">
+                        <i class="fas fa-layer-group"></i>
+                    </button>
                     <button class="icon-btn" id="theme-toggle" title="Toggle theme">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
                 </div>
             </div>
-            <p class="subtitle" id="app-subtitle">Match Chinese characters to their meanings</p>
 
-            <!-- Quick Stats -->
             <div class="quick-stats">
-                <div class="stat-item">
-                    <div class="stat-number" id="current-question">1</div>
-                    <div class="stat-label">Current</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="current-question">1</div>
+                    <div class="stat-label">Question</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number correct" id="correct-count">0</div>
+                <div class="stat-cell">
+                    <div class="stat-value accent-success" id="correct-count">0</div>
                     <div class="stat-label">Correct</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="accuracy">0%</div>
+                <div class="stat-cell">
+                    <div class="stat-value accent-warning" id="accuracy">0%</div>
                     <div class="stat-label">Accuracy</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="wrong-count">0</div>
+                <div class="stat-cell">
+                    <div class="stat-value" id="wrong-count" style="color: #FCA5A5;">0</div>
                     <div class="stat-label">Wrong</div>
+                </div>
+            </div>
+
+            <!-- Streak and Daily Goal -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 12px; position: relative; z-index: 1;">
+                <div class="streak-badge" id="streak-badge" style="display:none;">
+                    <i class="fas fa-fire"></i>
+                    <span id="streak-count">0</span>
+                </div>
+                <div class="daily-goal-bar" id="daily-goal-bar" style="flex:1; margin-top:0;">
+                    <div class="goal-label">
+                        <span id="goal-text">Daily Goal</span>
+                        <span id="goal-progress-text">0/20</span>
+                    </div>
+                    <div class="goal-track">
+                        <div class="goal-fill" id="goal-fill" style="width:0%;"></div>
+                    </div>
                 </div>
             </div>
         </header>
 
         <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progress-bar">
-                <div class="progress-fill"></div>
+        <div class="progress-bar-wrap">
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-fill"></div>
             </div>
         </div>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Mode Selector -->
-            <div class="mode-selector">
-                <button class="mode-btn active" id="mode-pinyin">
-                    <i class="fas fa-language"></i>
-                    Pinyin
+
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" id="mode-pinyin">
+                    <i class="fas fa-language"></i> Pinyin
                 </button>
-                <button class="mode-btn" id="mode-english">
-                    <i class="fas fa-globe"></i>
-                    English
+                <button class="mode-tab" id="mode-english">
+                    <i class="fas fa-globe"></i> English
                 </button>
             </div>
 
-            <!-- Question Area -->
-            <div class="question-area">
-                <div class="question-card">
-                    <div class="question-label">Chinese Character</div>
-                    <div class="question-with-speaker">
-                        <div class="question" id="question">加载中...</div>
-                        <button class="speaker-btn" id="speaker-btn" title="Listen to pronunciation" aria-label="Play pronunciation">
-                            <i class="fas fa-volume-up" id="speaker-icon"></i>
-                        </button>
-                    </div>
+            <!-- SRS Review Panel (shown when SRS words are due) -->
+            <div class="srs-panel" id="srs-panel" style="display:none;">
+                <div class="srs-panel-icon">🧠</div>
+                <h3>SRS Review Due</h3>
+                <p id="srs-panel-text">You have words scheduled for spaced repetition review today.</p>
+                <div class="srs-boxes" id="srs-boxes">
+                    <!-- Filled by JavaScript -->
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="action-btn primary" id="srs-start-btn" style="width:100%;">
+                        <i class="fas fa-layer-group"></i> Start SRS Review
+                    </button>
+                </div>
+            </div>
 
-                    <div class="feedback" id="feedback"></div>
+            <!-- Question Card -->
+            <div class="question-card">
+                <div class="question-label" id="mode-label">Pinyin &amp; English</div>
 
-                    <!-- Options -->
-                    <div class="options" id="options">
-                        <!-- Options will be generated by JavaScript -->
-                    </div>
+                <div class="question-row">
+                    <div class="question-char" id="question">加载中...</div>
+                    <button class="speaker-btn" id="speaker-btn" title="Listen to pronunciation" aria-label="Play pronunciation">
+                        <i class="fas fa-volume-up" id="speaker-icon"></i>
+                    </button>
+                </div>
 
-                    <!-- Mobile Navigation -->
-                    <div class="mobile-nav">
-                        <button class="nav-btn" id="prev-btn" disabled>
-                            <i class="fas fa-arrow-left"></i>
-                        </button>
-                        <div class="progress-info">
-                            <span id="current-position">1</span>/<span id="total-questions">50</span>
-                        </div>
-                        <button class="nav-btn" id="next-btn">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
+                <div class="feedback-area" id="feedback"></div>
+
+                <div class="options-grid" id="options"></div>
+
+                <!-- Navigation -->
+                <div class="nav-row">
+                    <button class="nav-btn" id="prev-btn" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="position-indicator">
+                        <span id="current-position">1</span> / <span id="total-questions">50</span>
                     </div>
+                    <button class="nav-btn" id="next-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
 
             <!-- Batch Controls -->
-            <div class="batch-controls">
+            <div class="batch-bar">
                 <div class="batch-info" id="batch-info">
                     <i class="fas fa-layer-group"></i>
-                    <span>Batch 1 of 1</span>
+                    <span>Batch 1 / 1</span>
                 </div>
-                <div class="batch-size">
+                <div class="batch-size-group">
                     <span>Size:</span>
-                    <select id="batch-size-select">
+                    <select class="batch-size-select" id="batch-size-select">
                         <option value="25">25</option>
                         <option value="50" selected>50</option>
                         <option value="100">100</option>
@@ -151,162 +187,166 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="action-buttons">
-                <button class="action-btn secondary" id="review-btn" style="display: none;">
-                    <i class="fas fa-redo"></i>
-                    <span class="btn-text">Review (0)</span>
+            <div class="action-row">
+                <button class="action-btn secondary" id="review-btn" style="display:none;">
+                    <i class="fas fa-redo"></i> Review
                 </button>
                 <button class="action-btn secondary" id="save-btn">
-                    <i class="fas fa-save"></i>
-                    <span class="btn-text">Save</span>
+                    <i class="fas fa-save"></i> Save
                 </button>
                 <button class="action-btn primary" id="skip-btn">
-                    <i class="fas fa-forward"></i>
-                    <span class="btn-text">Skip</span>
-                </button>
-            </div>
-
-            <!-- Bottom Navigation -->
-            <div class="bottom-nav">
-                <button class="nav-icon" id="stats-btn">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Stats</span>
-                </button>
-                <button class="nav-icon" id="share-btn">
-                    <i class="fas fa-share-alt"></i>
-                    <span>Share</span>
-                </button>
-                <button class="nav-icon" id="batch-nav-btn">
-                    <i class="fas fa-list-ol"></i>
-                    <span>Batches</span>
-                </button>
-                <button class="nav-icon" id="settings-btn">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                    <i class="fas fa-forward"></i> Skip
                 </button>
             </div>
         </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" id="stats-btn">
+                <i class="fas fa-chart-bar"></i>
+                <span>Stats</span>
+            </button>
+            <button class="nav-item" id="share-btn">
+                <i class="fas fa-share-alt"></i>
+                <span>Share</span>
+            </button>
+            <button class="nav-item" id="batch-nav-btn">
+                <i class="fas fa-list-ol"></i>
+                <span>Batches</span>
+            </button>
+            <button class="nav-item" id="settings-btn">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
     </div>
 
-    <!-- Modals -->
-    <div class="modal" id="completion-modal">
-        <div class="modal-content">
+    <!-- ============ MODALS ============ -->
+
+    <!-- Completion Modal -->
+    <div class="modal-overlay" id="completion-modal">
+        <div class="modal-sheet">
             <div class="modal-header">
-                <h3>Batch Complete!</h3>
-                <button class="modal-close">&times;</button>
+                <h3 id="completion-title">Batch Complete!</h3>
+                <button class="modal-close" data-close="completion-modal">&times;</button>
             </div>
-            <div class="modal-body" id="completion-body">
-                <!-- Filled by JavaScript -->
-            </div>
+            <div class="modal-body" id="completion-body"></div>
         </div>
     </div>
 
-    <div class="modal" id="review-modal">
-        <div class="modal-content">
+    <!-- Review Words Modal -->
+    <div class="modal-overlay" id="review-modal">
+        <div class="modal-sheet">
             <div class="modal-header">
                 <h3>Review Words</h3>
-                <button class="modal-close">&times;</button>
+                <button class="modal-close" data-close="review-modal">&times;</button>
             </div>
-            <div class="modal-body" id="review-body">
-                <!-- Filled by JavaScript -->
-            </div>
+            <div class="modal-body" id="review-body"></div>
         </div>
     </div>
 
-    <div class="modal" id="share-modal">
-        <div class="modal-content">
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="share-modal">
+        <div class="modal-sheet">
             <div class="modal-header">
                 <h3>Share Progress</h3>
-                <button class="modal-close">&times;</button>
+                <button class="modal-close" data-close="share-modal">&times;</button>
             </div>
-            <div class="modal-body" id="share-body">
-                <!-- Filled by JavaScript -->
-            </div>
+            <div class="modal-body" id="share-body"></div>
         </div>
     </div>
 
-    <div class="modal" id="analysis-modal">
-        <div class="modal-content">
+    <!-- Analysis (Charts) Modal -->
+    <div class="modal-overlay" id="analysis-modal">
+        <div class="modal-sheet" style="max-width: 560px;">
             <div class="modal-header">
-                <h3>Performance Analysis</h3>
-                <button class="modal-close">&times;</button>
+                <h3>Progress Analytics</h3>
+                <button class="modal-close" data-close="analysis-modal">&times;</button>
             </div>
-            <div class="modal-body" id="analysis-body">
-                <!-- Filled by JavaScript -->
-            </div>
+            <div class="modal-body" id="analysis-body"></div>
         </div>
     </div>
 
-    <div class="modal" id="batch-select-modal">
-        <div class="modal-content">
+    <!-- Batch Select Modal -->
+    <div class="modal-overlay" id="batch-select-modal">
+        <div class="modal-sheet">
             <div class="modal-header">
                 <h3>Select Batch</h3>
-                <button class="modal-close">&times;</button>
+                <button class="modal-close" data-close="batch-select-modal">&times;</button>
             </div>
-            <div class="modal-body" id="batch-select-body">
-                <!-- Filled by JavaScript -->
-            </div>
+            <div class="modal-body" id="batch-select-body"></div>
         </div>
     </div>
 
-    <div class="modal" id="settings-modal">
-        <div class="modal-content">
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-sheet">
             <div class="modal-header">
                 <h3>Settings</h3>
-                <button class="modal-close">&times;</button>
+                <button class="modal-close" data-close="settings-modal">&times;</button>
             </div>
             <div class="modal-body" id="settings-body">
-                <div class="settings-section">
-                    <h4>Display Options</h4>
-                    <div class="settings-option">
-                        <div class="settings-label">Show English in Pinyin Mode</div>
-                        <label class="switch">
-                            <input type="checkbox" id="show-english-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="settings-option">
-                        <div class="settings-label">Auto-proceed after answer</div>
-                        <label class="switch">
-                            <input type="checkbox" id="auto-proceed-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="settings-option">
-                        <div class="settings-label">Sound Effects</div>
-                        <label class="switch">
-                            <input type="checkbox" id="sound-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                <h4 class="settings-section-title">Display</h4>
+                <div class="settings-row">
+                    <span class="settings-row-label">Show English in Pinyin Mode</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-english-toggle" checked>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Auto-proceed after answer</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-proceed-toggle" checked>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Sound Effects</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="toggle-track"></span>
+                    </label>
                 </div>
 
-                <div class="settings-section">
-                    <h4>Data Management</h4>
-                    <div class="settings-option">
-                        <div class="settings-label">Change Level</div>
-                        <button class="action-btn secondary" id="change-level-btn">
-                            <i class="fas fa-layer-group"></i> Change
-                        </button>
-                    </div>
-                    <div class="settings-option">
-                        <div class="settings-label">Reset Current Batch</div>
-                        <button class="action-btn secondary" id="reset-batch-btn">Reset</button>
-                    </div>
-                    <div class="settings-option">
-                        <div class="settings-label">Reset All Progress</div>
-                        <button class="action-btn secondary" id="reset-all-btn">Reset All</button>
-                    </div>
+                <h4 class="settings-section-title">Learning</h4>
+                <div class="settings-row">
+                    <span class="settings-row-label">Daily Goal (questions)</span>
+                    <select id="daily-goal-select" style="padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font-size: 0.875rem;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Enable Spaced Repetition</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="srs-toggle" checked>
+                        <span class="toggle-track"></span>
+                    </label>
                 </div>
 
-                <div class="settings-section">
-                    <h4>About</h4>
-                    <p style="color: #8e8e93; font-size: 14px;">
-                        HSK Vocabulary Master v1.0<br>
-                        Progress system compatible with old version<br>
-                        Current level: <span id="settings-current-level">—</span><br>
-                        Total words: <span id="settings-word-count">0</span>
-                    </p>
+                <h4 class="settings-section-title">Data</h4>
+                <div class="settings-row">
+                    <span class="settings-row-label">Change Level</span>
+                    <button class="action-btn secondary" id="change-level-btn" style="padding: 8px 16px; min-height: auto;">
+                        <i class="fas fa-layer-group"></i> Change
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Reset Current Batch</span>
+                    <button class="action-btn danger" id="reset-batch-btn" style="padding: 8px 16px; min-height: auto;">Reset</button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">Reset All Progress</span>
+                    <button class="action-btn danger" id="reset-all-btn" style="padding: 8px 16px; min-height: auto;">Reset All</button>
+                </div>
+
+                <div style="margin-top: var(--space-lg); padding: var(--space-md); background: var(--bg-surface-alt); border-radius: var(--radius-lg); font-size: 0.8125rem; color: var(--text-muted);">
+                    <strong>HSK Vocabulary Master</strong> v2.0<br>
+                    Level: <span id="settings-current-level">—</span><br>
+                    Total words: <span id="settings-word-count">0</span>
                 </div>
             </div>
         </div>
