@@ -533,6 +533,11 @@ function generateQuestion() {
     const word = batchWords[currentIndex];
     questionEl.textContent = word.chinese;
 
+    // Trigger character entrance animation
+    questionEl.classList.remove('char-entrance');
+    void questionEl.offsetWidth; // Force reflow
+    questionEl.classList.add('char-entrance');
+
     // Update mode label
     if (isSRSMode) {
         modeLabelEl.textContent = 'SRS Review';
