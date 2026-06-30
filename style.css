@@ -1475,7 +1475,170 @@ h4 { font-size: 1rem; }
 .modal-body { padding: var(--space-lg); }
 
 /* ================================================================
-   STAT CARDS
+   KPI Cards — gradient accent stats
+   ================================================================ */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+}
+
+.kpi-card {
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-base);
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 0 0 2px 2px;
+}
+
+.kpi-card.kpi-primary::before { background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light)); }
+.kpi-card.kpi-success::before { background: linear-gradient(90deg, #10B981, #34D399); }
+.kpi-card.kpi-accent::before { background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light)); }
+.kpi-card.kpi-purple::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.kpi-icon {
+    font-size: 1.25rem;
+    margin-bottom: 6px;
+    opacity: 0.7;
+}
+
+.kpi-card.kpi-primary .kpi-icon { color: var(--color-primary); }
+.kpi-card.kpi-success .kpi-icon { color: var(--color-success); }
+.kpi-card.kpi-accent .kpi-icon { color: var(--color-accent); }
+.kpi-card.kpi-purple .kpi-icon { color: #8B5CF6; }
+
+.kpi-value {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    font-family: var(--font-sans);
+    letter-spacing: -0.03em;
+}
+
+.kpi-label {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+/* ================================================================
+   ANALYSIS SECTION TITLES
+   ================================================================ */
+.analysis-section-title {
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.analysis-section-title i {
+    font-size: 0.875rem;
+    opacity: 0.6;
+}
+
+/* ================================================================
+   SRS DISTRIBUTION BARS
+   ================================================================ */
+.srs-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.srs-dist-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.srs-dist-label {
+    min-width: 72px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.srs-dist-label span {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+}
+
+.srs-dist-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.srs-dist-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.8s cubic-bezier(0.32, 0.72, 0, 1);
+    min-width: 0;
+}
+
+.srs-dist-count {
+    min-width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: white;
+    flex-shrink: 0;
+    font-family: var(--font-sans);
+}
+
+/* ================================================================
+   CHART ENHANCEMENTS
+   ================================================================ */
+.chart-wrap-lg {
+    height: 220px;
+}
+
+.chart-wrap-lg canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ================================================================
+   BATCH DOT WITH ACCURACY GLOW
+   ================================================================ */
+.batch-dot:not(.current):not(.completed)[style*="--batch-acc"] {
+    background: color-mix(in srgb, var(--color-success) calc(var(--batch-acc, 0%) * 0.7), var(--bg-surface-alt));
+}
+
+/* ================================================================
+   STAT CARDS — enhanced
    ================================================================ */
 .stats-grid-2 {
     display: grid;
@@ -1492,7 +1655,7 @@ h4 { font-size: 1rem; }
 .stat-card {
     background: var(--bg-surface-alt);
     border-radius: var(--radius-lg);
-    padding: var(--space-md);
+    padding: var(--space-lg) var(--space-md);
     text-align: center;
     border: 1px solid var(--border-light);
     transition: all var(--transition-fast);
@@ -1519,6 +1682,122 @@ h4 { font-size: 1rem; }
     letter-spacing: 0.5px;
     margin-top: 2px;
     font-weight: 600;
+}
+
+/* ================================================================
+   RESPONSIVE — Analysis modal larger on desktop
+   ================================================================ */
+@media (min-width: 768px) {
+    #analysis-modal .modal-sheet {
+        max-width: 620px;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .chart-wrap-lg {
+        height: 260px;
+    }
+}
+
+/* ================================================================
+   RESPONSIVE — Question sizing
+   ================================================================ */
+
+/* Desktop: larger question cards with comfortable spacing */
+@media (min-width: 768px) {
+    .question-char { font-size: 4.5rem; }
+
+    .option-btn {
+        min-height: 80px;
+        padding: var(--space-lg);
+    }
+
+    .option-pinyin {
+        font-size: 1.1875rem;
+    }
+
+    .option-english {
+        font-size: 0.9375rem;
+    }
+
+    .option-text {
+        font-size: 1.1875rem;
+    }
+
+    .question-card {
+        padding: var(--space-xl);
+    }
+
+    .options-grid {
+        gap: var(--space-md);
+    }
+}
+
+/* Tablet: balanced sizes */
+@media (min-width: 600px) and (max-width: 767px) {
+    .question-char { font-size: 3.5rem; }
+
+    .option-btn {
+        min-height: 74px;
+    }
+}
+
+/* Extra small phones */
+@media (max-width: 380px) {
+    .question-char { font-size: 2rem; }
+    .question-row { min-height: 60px; }
+
+    .option-btn {
+        min-height: 60px;
+        padding: var(--space-sm);
+    }
+
+    .option-pinyin { font-size: 0.9375rem; }
+    .option-english { font-size: 0.75rem; }
+    .option-text { font-size: 0.9375rem; }
+
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .kpi-value { font-size: 1.25rem; }
+    .kpi-card { padding: var(--space-md); }
+}
+
+/* Landscape on phones — compact layout */
+@media (max-height: 500px) and (orientation: landscape) {
+    .question-char { font-size: 1.75rem; }
+    .question-row { padding: var(--space-xs) 0; min-height: 46px; }
+
+    .options-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-xs);
+    }
+
+    .option-btn {
+        padding: var(--space-sm);
+        min-height: 48px;
+        gap: 0;
+    }
+
+    .option-pinyin { font-size: 0.8125rem; }
+    .option-english { font-size: 0.6875rem; }
+    .option-text { font-size: 0.8125rem; }
+
+    .main-content {
+        padding-bottom: var(--space-md);
+        gap: var(--space-sm);
+    }
+
+    .question-card {
+        padding: var(--space-md);
+    }
+
+    .feedback-area {
+        min-height: 38px;
+        margin: var(--space-xs) 0;
+        padding: var(--space-xs) var(--space-md);
+        font-size: 0.8125rem;
+    }
 }
 
 /* ================================================================
@@ -2029,8 +2308,6 @@ input:checked + .toggle-track::before {
         margin: 0 var(--space-md);
     }
 
-    .question-char { font-size: 4.5rem; }
-
     .main-content {
         padding: var(--space-xl);
         padding-bottom: var(--space-2xl);
@@ -2055,13 +2332,6 @@ input:checked + .toggle-track::before {
     .stat-value { font-size: 1rem; }
     .stat-label { font-size: 0.625rem; }
 
-    .question-char { font-size: 2rem; }
-
-    .option-btn {
-        padding: var(--space-sm);
-        min-height: 62px;
-    }
-
     .action-btn {
         padding: 12px 8px;
         font-size: 0.75rem;
@@ -2075,37 +2345,6 @@ input:checked + .toggle-track::before {
         border-radius: var(--radius-lg);
     }
     .nav-item { padding: var(--space-xs) var(--space-sm); min-width: 44px; }
-}
-
-/* Landscape on phones */
-@media (max-height: 500px) and (orientation: landscape) {
-    .question-char { font-size: 1.75rem; }
-
-    .question-row {
-        padding: var(--space-sm) 0;
-        min-height: 50px;
-    }
-
-    .options-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--space-xs);
-    }
-
-    .option-btn {
-        padding: var(--space-sm);
-        min-height: 54px;
-    }
-
-    .main-content {
-        padding-bottom: var(--space-md);
-        gap: var(--space-sm);
-    }
-
-    .feedback-area {
-        min-height: 42px;
-        margin: var(--space-xs) 0;
-        padding: var(--space-xs) var(--space-md);
-    }
 }
 
 /* ================================================================

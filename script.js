@@ -1293,29 +1293,68 @@ function populateAnalysis() {
     const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
     const srsStats = getSRSStats();
     const srsTotal = Object.values(srsStats).reduce((a,b) => a+b, 0);
+    const maxSrsBox = Math.max(...Object.values(srsStats), 1);
 
     body.innerHTML = `
-        <div class="stats-grid-2">
-            <div class="stat-card"><div class="stat-card-val">${totalBatches}</div><div class="stat-card-lbl">Total Batches</div></div>
-            <div class="stat-card"><div class="stat-card-val">${completed}</div><div class="stat-card-lbl">Completed</div></div>
-            <div class="stat-card"><div class="stat-card-val">${accuracy}%</div><div class="stat-card-lbl">Accuracy</div></div>
-            <div class="stat-card"><div class="stat-card-val">${streakData.currentStreak}</div><div class="stat-card-lbl">Day Streak</div></div>
-            <div class="stat-card"><div class="stat-card-val">${reviewWords.length}</div><div class="stat-card-lbl">To Review</div></div>
-            <div class="stat-card"><div class="stat-card-val">${srsTotal}</div><div class="stat-card-lbl">SRS Words</div></div>
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-primary">
+                <div class="kpi-icon"><i class="fas fa-bullseye"></i></div>
+                <div class="kpi-value">${accuracy}%</div>
+                <div class="kpi-label">Accuracy</div>
+            </div>
+            <div class="kpi-card kpi-success">
+                <div class="kpi-icon"><i class="fas fa-check-double"></i></div>
+                <div class="kpi-value">${completed}</div>
+                <div class="kpi-label">of ${totalBatches} Batches</div>
+            </div>
+            <div class="kpi-card kpi-accent">
+                <div class="kpi-icon"><i class="fas fa-fire"></i></div>
+                <div class="kpi-value">${streakData.currentStreak}</div>
+                <div class="kpi-label">Day Streak</div>
+            </div>
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-icon"><i class="fas fa-brain"></i></div>
+                <div class="kpi-value">${srsTotal}</div>
+                <div class="kpi-label">SRS Words</div>
+            </div>
         </div>
 
-        <h4 style="margin-top:24px;margin-bottom:12px;color:var(--text-secondary);font-size:0.875rem;">SRS Box Distribution</h4>
-        <div class="srs-boxes" style="justify-content:flex-start;">
-            ${[0,1,2,3,4,5].map(i => `<div class="srs-box box-${i}${(srsStats[i]||0)>0?' has-words':''}" title="Box ${i}">${srsStats[i]||0}</div>`).join('')}
+        <h4 class="analysis-section-title">
+            <i class="fas fa-layer-group"></i> SRS Box Distribution
+        </h4>
+        <div class="srs-distribution">
+            ${[0,1,2,3,4,5].map(i => {
+                const count = srsStats[i] || 0;
+                const pct = maxSrsBox > 0 ? Math.round((count / maxSrsBox) * 100) : 0;
+                const labels = ['New', '1d', '3d', '7d', '14d', '30d'];
+                const gradients = ['var(--color-error)', '#F97316', 'var(--color-accent)', '#22C55E', 'var(--color-success)', 'var(--color-primary)'];
+                return `<div class="srs-dist-row">
+                    <div class="srs-dist-label">Box ${i} <span>${labels[i]}</span></div>
+                    <div class="srs-dist-track">
+                        <div class="srs-dist-fill" style="width:${pct}%;background:${gradients[i]};"></div>
+                    </div>
+                    <div class="srs-dist-count srs-box box-${i}">${count}</div>
+                </div>`;
+            }).join('')}
         </div>
 
-        <h4 style="margin-top:24px;margin-bottom:12px;color:var(--text-secondary);font-size:0.875rem;">Accuracy Trend (Last 30 Days)</h4>
-        <div class="chart-card"><div class="chart-wrap"><canvas id="accuracy-chart"></canvas></div></div>
+        <h4 class="analysis-section-title">
+            <i class="fas fa-chart-line"></i> Accuracy Trend
+        </h4>
+        <div class="chart-card">
+            <div class="chart-wrap chart-wrap-lg"><canvas id="accuracy-chart"></canvas></div>
+        </div>
 
-        <h4 style="margin-top:16px;margin-bottom:12px;color:var(--text-secondary);font-size:0.875rem;">Questions Answered Per Day</h4>
-        <div class="chart-card"><div class="chart-wrap"><canvas id="volume-chart"></canvas></div></div>
+        <h4 class="analysis-section-title">
+            <i class="fas fa-chart-bar"></i> Daily Questions
+        </h4>
+        <div class="chart-card">
+            <div class="chart-wrap chart-wrap-lg"><canvas id="volume-chart"></canvas></div>
+        </div>
 
-        <h4 style="margin-top:24px;margin-bottom:12px;color:var(--text-secondary);font-size:0.875rem;">Batch Progress</h4>
+        <h4 class="analysis-section-title">
+            <i class="fas fa-th-large"></i> Batch Progress
+        </h4>
         <div class="batch-grid" id="analysis-batch-grid"></div>
     `;
 
@@ -1327,13 +1366,15 @@ function populateAnalysis() {
         if (i === currentBatch) dot.classList.add('current');
         if (completedBatches.has(i)) dot.classList.add('completed');
         dot.textContent = i + 1;
-        dot.title = batchPerformance[i] ? `Accuracy: ${batchPerformance[i].accuracy}%` : 'Not started';
+        const perf = batchPerformance[i];
+        dot.title = perf ? `Accuracy: ${perf.accuracy}%` : 'Not started';
+        if (perf) dot.style.setProperty('--batch-acc', perf.accuracy + '%');
         dot.addEventListener('click', () => { closeModal('analysis-modal'); goToBatch(i); });
         batchGrid.appendChild(dot);
     }
 
     // Render charts after a short delay (DOM must be visible)
-    setTimeout(() => renderCharts(), 200);
+    setTimeout(() => renderCharts(), 250);
 }
 
 function renderCharts() {
@@ -1354,12 +1395,27 @@ function renderCharts() {
     }
 
     const isDark = document.body.getAttribute('data-theme') === 'dark';
-    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-    const textColor = isDark ? '#94A3B8' : '#64748B';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    const textColor = isDark ? '#94A3B8' : '#585C7A';
+    const fontFamily = getComputedStyle(document.body).fontFamily;
 
-    // Accuracy chart
+    // Score color gradient for volume bars
+    function volumeBarColor(ctx) {
+        if (!ctx.chart.chartArea) return '#8B8FF5';
+        const { chartArea: { top, bottom } } = ctx;
+        const gradient = ctx.chart.ctx.createLinearGradient(0, top, 0, bottom);
+        gradient.addColorStop(0, isDark ? '#A5B4FC' : '#7C7FEF');
+        gradient.addColorStop(1, isDark ? '#6366F1' : '#5B5FE3');
+        return gradient;
+    }
+
+    // Accuracy chart — elegant line with gradient fill
     const accCtx = $('accuracy-chart');
     if (accCtx) {
+        const accGradient = accCtx.getContext('2d').createLinearGradient(0, 0, 0, 240);
+        accGradient.addColorStop(0, isDark ? 'rgba(139,143,245,0.25)' : 'rgba(91,95,227,0.2)');
+        accGradient.addColorStop(1, 'rgba(139,143,245,0.0)');
+
         new Chart(accCtx, {
             type: 'line',
             data: {
@@ -1367,27 +1423,33 @@ function renderCharts() {
                 datasets: [{
                     label: 'Accuracy %',
                     data: accuracyData,
-                    borderColor: '#4F46E5',
-                    backgroundColor: 'rgba(79,70,229,0.1)',
+                    borderColor: isDark ? '#A5B4FC' : '#5B5FE3',
+                    backgroundColor: accGradient,
+                    borderWidth: 2.5,
                     fill: true,
-                    tension: 0.3,
-                    pointRadius: accuracyData.filter(v => v !== null).length < 10 ? 3 : 1,
+                    tension: 0.35,
+                    pointRadius: accuracyData.filter(v => v !== null).length < 10 ? 4 : 2,
+                    pointBackgroundColor: isDark ? '#A5B4FC' : '#5B5FE3',
+                    pointBorderColor: isDark ? '#131830' : '#FFFFFF',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 6,
                     spanGaps: false
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1, padding: 10, cornerRadius: 8 } },
                 scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: textColor, maxTicksLimit: 10, font: { size: 10 } } },
-                    y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } }, min: 0, max: 100 }
+                    x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, maxTicksLimit: 8, font: { size: 10, family: fontFamily } } },
+                    y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, font: { size: 10, family: fontFamily }, callback: v => v + '%' }, min: 0, max: 100 }
                 }
             }
         });
     }
 
-    // Volume chart
+    // Volume chart — elegant bars
     const volCtx = $('volume-chart');
     if (volCtx) {
         new Chart(volCtx, {
@@ -1397,17 +1459,19 @@ function renderCharts() {
                 datasets: [{
                     label: 'Questions',
                     data: volumeData,
-                    backgroundColor: '#818CF8',
-                    borderRadius: 4
+                    backgroundColor: volumeBarColor,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 24
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1, padding: 10, cornerRadius: 8 } },
                 scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: textColor, maxTicksLimit: 10, font: { size: 10 } } },
-                    y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true }
+                    x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, maxTicksLimit: 8, font: { size: 10, family: fontFamily } } },
+                    y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, font: { size: 10, family: fontFamily }, stepSize: 1 }, beginAtZero: true }
                 }
             }
         });
