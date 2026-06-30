@@ -1401,8 +1401,8 @@ function renderCharts() {
 
     // Score color gradient for volume bars
     function volumeBarColor(ctx) {
-        if (!ctx.chart.chartArea) return '#8B8FF5';
-        const { chartArea: { top, bottom } } = ctx;
+        if (!ctx.chart || !ctx.chart.chartArea) return isDark ? '#A5B4FC' : '#7C7FEF';
+        const { top, bottom } = ctx.chart.chartArea;
         const gradient = ctx.chart.ctx.createLinearGradient(0, top, 0, bottom);
         gradient.addColorStop(0, isDark ? '#A5B4FC' : '#7C7FEF');
         gradient.addColorStop(1, isDark ? '#6366F1' : '#5B5FE3');
